@@ -3,6 +3,9 @@
 praatIO.js
 ---------
 
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg?
+   :target: http://opensource.org/licenses/MIT
+
 A library for reading and writing textgrid files.  Currently has limited functionality
 compared with praatIO for python.  More functionality may be added in the future 
 as needed.

@@ -1,4 +1,3 @@
-
 /*
 Written by Tim Mahrt
 March 25, 2015
@@ -11,170 +10,599 @@ TODO: add writeTextgrid()?
 This is a translation of the file reading and writing capabilities of the python praatio
 library.
 */
-var INTERVAL_TIER = "interval_tier"
-var POINT_TIER = "point_tier"
+const INTERVAL_TIER = "interval_tier";
+const POINT_TIER = "point_tier";
+const MIN_INTERVAL_LENGTH = 0.00000001 // Arbitrary threshold
+
+function fillInBlanks(tier, blankLabel = "", startTime = null, endTime = null) {
+    /*
+    Fills in the space between intervals with empty space
+
+    This is necessary to do when saving to create a well-formed textgrid
+    */
+
+    if (startTime === null) startTime = tier.minTimestamp;
+    if (endTime === null) endTime = tier.maxTimestamp;
+
+    // Special case: empty textgrid
+    if (tier.entryList.length === 0) tier.entryList.push([startTime, endTime, blankLabel]);
+
+    // Create a new entry list
+    let entryList = tier.entryList.slice();
+    let entry = entryList[0];
+    let prevEnd = parseFloat(entry[1]);
+    let newEntryList = [entry, ];
+
+    for (let i = 1; i < entryList.length; i++) {
+        let newStart = parseFloat(entryList[i][0]);
+        let newEnd = parseFloat(entryList[i][1]);
+
+        if (prevEnd < newStart) newEntryList.push([prevEnd, newStart, blankLabel]);
+
+        newEntryList.push(entryList[i]);
+
+        prevEnd = newEnd;
+    }
+
+    // Special case: If there is a gap at the start of the file
+    if (!parseFloat(newEntryList[0][0]) >= parseFloat(startTime)) {
+        throw new Error("Tier data is before the tier start time.")
+    }
+    if (parseFloat(newEntryList[0][0]) > parseFloat(startTime)) {
+        newEntryList.splice(0, 0, [startTime, newEntryList[0][0], blankLabel]);
+    }
+
+    // Special case: If there is a gap at the end of the file
+    if (endTime !== null) {
+        if (!parseFloat(newEntryList[-1][1]) <= parseFloat(endTime)) {
+            throw new Error("Tier data is after the tier end time.")
+        }
+        if (parseFloat(newEntryList[-1][1]) < parseFloat(endTime)) {
+            newEntryList.splice([newEntryList[-1][1], endTime, blankLabel]);
+        }
+    }
+
+    return new IntervalTier(tier.name, newEntryList, tier.minTimestamp, tier.maxTimestamp);
+}
+
+
+function removeUltrashortIntervals(tier, minLength) {
+    /*
+    Remove intervals that are very tiny
+
+    Doing many small manipulations on intervals can lead to the creation
+    of ultrashort intervals (e.g. 1*10^-15 seconds long).  This function
+    removes such intervals.
+    */
+
+    // First, remove tiny intervals
+    let newEntryList = [];
+    let j = 0;
+    for (let i = 0; i < tier.entryList.length; i++) {
+        let [start, stop, label] = tier.entryList[i];
+        if (stop - start < minLength) {
+            // Correct ultra-short entries
+            if (newEntryList.length > 0) {
+                newEntryList[j - 1] = (newEntryList[j - 1], stop, newEntryList[j - 1]);
+            }
+        } else {
+            // Special case: the first entry in oldEntryList was ultra-short
+            if (newEntryList.length === 0 && start !== 0) {
+                newEntryList.push([0, stop, label]);
+            } else // Normal case
+            {
+                newEntryList.push([start, stop, label]);
+            }
+            j += 1;
+        }
+    }
+
+    // Next, shift near equivalent tiny boundaries
+    j = 0;
+    while (j < newEntryList.length - 1) {
+        let diff = Math.abs(newEntryList[j][1] - newEntryList[j + 1][0]);
+        if (diff > 0 && diff < MIN_INTERVAL_LENGTH) {
+            newEntryList[j] = [newEntryList[j][0], newEntryList[j + 1][0], newEntryList[j][2]];
+        }
+    }
+
+    return tier.newCopy({
+        entryList: newEntryList
+    })
+}
 
 // Python-like split from 
 // http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
 function extended_split(str, separator, max) {
-  var out = [],
-    index = 0,
-    next;
+    let out = [],
+        index = 0,
+        next;
 
-  while (!max || out.length < max - 1) {
-    next = str.indexOf(separator, index);
-    if (next === -1) {
-      break;
+    while (!max || out.length < max - 1) {
+        next = str.indexOf(separator, index);
+        if (next === -1) {
+            break;
+        }
+        out.push(str.substring(index, next));
+        index = next + separator.length;
     }
-    out.push(str.substring(index, next));
-    index = next + separator.length;
-  }
-  out.push(str.substring(index));
-  return out;
-};
+    out.push(str.substring(index));
+    return out;
+}
+
+function findAllSubstrings(sourceStr, subStr) {
+    let indexList = [],
+        index = sourceStr.indexOf(subStr);
+    while (index !== -1) {
+        indexList.push(index);
+        index += 1;
+
+        index = sourceStr.indexOf(subStr, index);
+    }
+    return indexList;
+}
 
 var fetchRow = function(dataStr, searchStr, index) {
-  var startIndex = dataStr.indexOf(searchStr, index) + searchStr.length;
-  var endIndex = dataStr.indexOf("\n", startIndex);
+    let startIndex = dataStr.indexOf(searchStr, index) + searchStr.length;
+    let endIndex = dataStr.indexOf("\n", startIndex);
 
-  var word = dataStr.substring(startIndex, endIndex);
-  word = word.trim()
+    let word = dataStr.substring(startIndex, endIndex);
+    word = word.trim();
 
-  if (word[0] == '"' && word[word.length - 1] == '"') {
-    word = word.substring(1, word.length - 1);
-  }
-  word = word.trim()
+    if (word[0] == '"' && word[word.length - 1] == '"') {
+        word = word.substring(1, word.length - 1);
+    }
+    word = word.trim();
 
-  return [word, endIndex + 1];
+    // Increment the index by 1, unless nothing was found
+    if (endIndex !== -1) endIndex += 1;
+
+    return [word, endIndex];
+}
+
+var strToIntOrFloat = function(inputStr) {
+    let retNum = null;
+    if (inputStr.includes('.')) {
+        retNum = parseFloat(inputStr);
+    } else {
+        retNum = parseInt(inputStr);
+    }
+    return retNum;
+}
+
+class TextgridTier {
+
+    constructor(name, entryList, minT, maxT) {
+        this.name = name;
+        this.entryList = entryList;
+        this.minTimestamp = minT;
+        this.maxTimestamp = maxT;
+        this.tierType = null;
+    }
+
+    appendTier(tier) {
+        let minTime = this.minTimestamp;
+        if (tier.minTimestamp < minTime) minTime = tier.minTimestamp;
+
+        let maxTime = this.maxTimestamp + tier.maxTimestamp;
+
+        let appendTier = tier.editTimestamps(this.maxTimestamp, allowOvershoot = True);
+
+        if (!this.tierType === tier.tierType) {
+            throw new Error("Tier types must match when appending tiers.")
+        }
+
+        let entryList = this.entryList + appendTier.entryList;
+        entryList.sort(function(x, y) {
+            return x[0] < x[1]
+        });
+
+        return self.newCopy(self.name, entryList, minTime, maxTime)
+    }
+
+    deleteEntry(entry) {
+        let i = this.entryList.indexOf(entry);
+        this.entryList.splice(i, 1);
+    }
+
+    find(matchLabel, substrMatchFlag, usingRE) {
+        let returnList = [];
+        for (let i = 0; i < this.entryList.length; i++) {
+            if (usingRE === true) {
+                if (this.entryList[i].match(matchLabel)) returnList.append(i)
+            } else if (substrMatchFlag === false) {
+                if (this.entryList[i] === matchLabel) returnList.append(i);
+            } else {
+                if (this.entryList[i].includes(matchLabel)) returnList.append(i);
+            }
+        }
+        return returnList;
+    }
+
+    newCopy({
+        name = null,
+        entryList = null,
+        minTimestamp = null,
+        maxTimestamp = null
+    } = {}) {
+        if (name === null) name = this.name;
+        if (entryList === null) entryList = this.entryList;
+        if (minTimestamp === null) minTimestamp = this.minTimestamp;
+        if (maxTimestamp === null) maxTimestamp = this.maxTimestamp;
+
+        return this.constructor(name, entryList, minTimestamp, maxTimestamp);
+    }
+
+    sort() {
+        this.entryList.sort(function(x, y) {
+            return x[0] < x[1]
+        });
+    }
+
+    union(tier) {
+        retTier = this.newCopy();
+
+        for (let i = 0; i < tier.entryList.length; i++) {
+            retTier.insertEntry(entryList[i], false, 'merge')
+        }
+    }
+}
+
+class PointTier extends TextgridTier {
+    constructor(name, entryList, minT = null, maxT = null) {
+
+        entryList = entryList.map(([timeV, label]) => [parseFloat(timeV), label]);
+
+        // Determine the min and max timestamps
+        let timeList = entryList.map(entry => entry[0]);
+        if (minT !== null) timeList.push(parseFloat(minT));
+        if (maxT !== null) timeList.push(parseFloat(maxT));
+
+        minT = Math.min(...timeList);
+        maxT = Math.max(...timeList);
+
+        // Finish intialization
+        super(name, entryList, minT, maxT);
+        this.tierType = 'TextTier';
+    }
+
+    crop(cropStart, cropEnd, mode, rebaseToZero = true) {
+        /*
+        Creates a new tier containing all entires inside the new interval
+
+        mode is ignored.  This parameter is kept for compatibility with
+        IntervalTier.crop()
+        */
+        let newEntryList = [];
+
+        for (let i = 0; i < this.entryList.length; i++) {
+            let timestamp = this.entryList[i][0];
+            if (timestamp >= cropStart && timestamp <= cropEnd) newEntryList.push(this.entryList[i]);
+        }
+
+        if (rebaseToZero === true) {
+            newEntryList = newEntryList.map(entry => [entry[0] - cropStart, entry[1]])
+            minT = 0;
+            maxT = cropEnd - cropStart;
+        } else {
+            minT = cropStart;
+            maxT = cropEnd;
+        }
+
+        let subTier = new PointTier(this.name, newEntryList, minT, maxT);
+        return subTier;
+    }
+
+}
+
+class IntervalTier extends TextgridTier {
+    constructor(name, entryList, minT = null, maxT = null) {
+
+        entryList = entryList.map(([startTime, endTime, label]) => [parseFloat(startTime), parseFloat(endTime), label])
+
+        // Determine the min and max timestamps
+        let startTimeList = entryList.map(entry => entry[0]);
+        let endTimeList = entryList.map(entry => entry[1]);
+        let timeList = startTimeList.concat(endTimeList);
+
+        if (minT !== null) timeList.push(parseFloat(minT));
+        if (maxT !== null) timeList.push(parseFloat(maxT));
+
+        minT = Math.min(...startTimeList);
+        maxT = Math.max(...endTimeList);
+
+        // Finish initialization
+        super(name, entryList, minT, maxT);
+        this.tierType = 'IntervalTier';
+    }
+}
+
+class Textgrid {
+    constructor() {
+        this.tierNameList = [];
+        this.tierDict = {};
+
+        this.minTimestamp = null;
+        this.maxTimestamp = null;
+    }
+
+    addTier(tier, tierIndex = null) {
+
+        if (Object.keys(this.tierDict).includes(tier.name)) {
+            throw new Error("Tier name already exists in textgrid")
+        }
+
+        if (tierIndex === null) this.tierNameList.push(tier.name);
+        else this.tierNameList.splice(tierIndex, 0, tier.name);
+
+        this.tierDict[tier.name] = tier;
+
+        if (this.minTimestamp === null || tier.minTimestamp < this.minTimestamp) {
+            this.minTimestamp = tier.minTimestamp;
+        }
+
+        if (this.maxTimestamp === null || tier.maxTimestamp > this.maxTimestamp) {
+            this.maxTimestamp = tier.maxTimestamp;
+        }
+    }
+
+    newCopy() {
+        let textgrid = new Textgrid();
+        for (i = 0; i < this.tierNameList; i++) {
+            let tierName = this.tierNameList[i];
+            textgrid.tierNameList.push(tierName);
+            textgrid.tierDict[tierName] = this.tierDict[tierName];
+        }
+
+        textgrid.minTimestamp = this.minTimestamp;
+        textgrid.maxTimestamp = this.maxTimestamp;
+
+        return textgrid;
+    }
+
+    renameTier(oldName, newName) {
+        let oldTier = this.tierDict[oldName];
+        let tierIndex = this.tierNameList.indexOf(oldName);
+        this.removeTier(oldName);
+        this.addTier(oldTier)
+    }
+
+    removeTier(name) {
+        this.tierNameList.splice(this.tierNameList.index(name), 1);
+        delete this.tierDict[name];
+    }
+
+    replaceTier(name, newTier) {
+        let tierIndex = this.tierNameList.indexOf(name);
+        this.removeTier(name);
+        this.addTier(newTier, tierIndex);
+    }
+
+    getOutputText(fn, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
+        /*
+        Formats the textgrid for saving to a .TextGrid fileimumIntervalLength is null, then ultrashortintervals
+        will not be checked for.
+        */
+        for (let i = 0; i < this.tierNameList.length; i++) {
+            this.tierDict[tierNameList[i]].sort();
+        }
+
+        // Fill in the blank spaces for interval tiers
+        for (let i = 0; i < this.tierNameList.length; i++) {
+            let tierName = this.tierNameList[i];
+            let tier = this.tierDict[tierName];
+
+            if (tier instanceof IntervalTier) {
+                tier = fillInBlanks(tier, "", this.minTimestamp, this.maxTimestamp);
+                if (minimumIntervalLength !== null) {
+                    tier = removeUltrashortIntervals(tier, minimumIntervalLength);
+                }
+                this.tierDict[name] = tier;
+            }
+        }
+
+        for (let i = 0; i < this.tierNameList.length; i++) {
+            this.tierDict[this.tierNameList[i]].sort();
+        }
+
+        // Header
+        let outputTxt = "";
+        outputTxt += 'File type = "ooTextFile short"\n';
+        outputTxt += 'Object class = "TextGrid"\n\n';
+        outputTxt += "${this.minTimestamp}\n${this.maxTimestamp}\n";
+        outputTxt += "<exists>\n${this.tierNameList}\n"
+
+        for (let i = 0; i < this.tierNameList.length; i++) {
+            outputTxt += this.tierDict[this.tierNameList[i]].getAsText();
+        }
+
+        return outputTxt;
+
+    }
+
 }
 
 var parseNormalTextgrid = function(data) {
 
-  // Toss header
-  var tierList = data.split('item');
-  var textgridHeader = tierList[0];
+    // Toss header
+    let tierList = data.split('item [');
+    let textgridHeader = tierList.shift();
 
-  var tgStart = textgridHeader.split("xmin = ", 2)[1].split("\n", 1)[0].trim();
-  var tgEnd = textgridHeader.split("xmax = ", 2)[1].split("\n", 1)[0].trim();
-  tierList.shift();
+    let tgMin = parseFloat(textgridHeader.split("xmin = ", 2)[1].split("\n", 1)[0].trim());
+    let tgMax = parseFloat(textgridHeader.split("xmax = ", 2)[1].split("\n", 1)[0].trim());
 
-  // Process each tier individually
-  //tierList = data.split('item');
-  //tierList = tierList[1,tierList.length];
-  var tierTxt = '';
-  tierList.shift();
+    // Process each tier individually
+    //tierList = data.split('item');
+    //tierList = tierList[1,tierList.length];
+    let tierTxt = '';
+    tierList.shift(); // Removing the document root empty item
+    let textgrid = new Textgrid();
+	textgrid.minTimestamp = tgMin;
+	textgrid.maxTimestamp = tgMax;
+	
+    for (i = 0; i < tierList.length; i++) {
+        tierTxt = tierList[i];
 
-  var tierDict = {};
-  var tierNameList = [];
-
-  for (i = 0; i < tierList.length; i++) {
-    tierTxt = tierList[i];
-
-    // Get tier type
-    var tierType = POINT_TIER;
-    var searchWord = "points";
-    if (tierTxt.indexOf('class = "IntervalTier"') > -1) {
-      tierType = INTERVAL_TIER;
-      searchWord = "intervals";
-    }
-
-    // Get tier meta-information
-    var tmpArray = extended_split(tierTxt, searchWord, 2);
-    var header = tmpArray[0];
-    var tierData = tmpArray[1];
-    var tierName = header.split("name = ", 2)[1].split("\n", 1)[0].trim();
-    var tierStart = header.split("xmin = ", 2)[1].split("\n", 1)[0].trim();
-    var tierEnd = header.split("xmax = ", 2)[1].split("\n", 1)[0].trim();
-
-
-    // Get the tier entry list
-    var entryList = [];
-    var labelI = 0;
-    if (tierType == INTERVAL_TIER) {
-      tierType = "IntervalTier";
-      while (true) {
-        var startArray = fetchRow(tierData, "xmin = ", labelI);
-
-        var timeStart = startArray[0];
-        var timeStartI = startArray[1];
-
-        // Break condition here.  indexof loops around at the end of a file
-        if (timeStartI <= labelI) {
-          break;
+        // Get tier type
+        let tierType = POINT_TIER;
+        let searchWord = "points";
+        if (tierTxt.indexOf('class = "IntervalTier"') > -1) {
+            tierType = INTERVAL_TIER;
+            searchWord = "intervals";
         }
 
-        var endArray = fetchRow(tierData, "xmax = ", timeStartI);
+        // Get tier meta-information
+        let tmpArray = extended_split(tierTxt, searchWord, 2);
+        let header = tmpArray[0];
+        let tierData = tmpArray[1];
+        let tierName = header.split("name = ", 2)[1].split("\n", 1)[0].trim();
+        let tierStart = header.split("xmin = ", 2)[1].split("\n", 1)[0].trim();
+        let tierEnd = header.split("xmax = ", 2)[1].split("\n", 1)[0].trim();
 
-        var timeEnd = endArray[0];
-        var timeEndI = endArray[1];
+        // Get the tier entry list
+        let entryList = [];
+        let labelI = 0;
+        let label, tier = null;
+        if (tierType == INTERVAL_TIER) {
+            let timeStartI, timeEndI, timeStart, timeEnd = null;
+            while (true) {
+                [timeStart, timeStartI] = fetchRow(tierData, "xmin = ", labelI);
 
-        var labelArray = fetchRow(tierData, "text =", timeEndI);
-        var label = labelArray[0];
-        var labelI = labelArray[1];
+                // Break condition here.  indexof loops around at the end of a file
+                if (timeStartI <= labelI) break;
 
-        label = label.trim();
-        if (label === "") continue;
+                [timeEnd, timeEndI] = fetchRow(tierData, "xmax = ", timeStartI);
+                [label, labelI] = fetchRow(tierData, "text =", timeEndI);
 
-        entryList.push([parseFloat(timeStart), parseFloat(timeEnd), label]);
-      }
-    } else {
-      tierType = "TextTier"; // Name for point tier type??
-      while (true) {
-        var pointArray = fetchRow(tierData, "number = ", labelI);
+                label = label.trim();
+                if (label === "") continue;
 
-        var timePoint = pointArray[0];
-        var timePointI = pointArray[1];
+                entryList.push([parseFloat(timeStart), parseFloat(timeEnd), label]);
+            }
+            tier = new IntervalTier(tierName, entryList, tierStart, tierEnd);
 
-        // Break condition here.  indexof loops around at the end of a file
-        if (timePointI <= labelI) {
-          break;
+        } else {
+            let timePointI, timePoint = null;
+            while (true) {
+                [timePoint, timePointI] = fetchRow(tierData, "number = ", labelI);
+
+                // Break condition here.  indexof loops around at the end of a file
+                if (timePointI <= labelI) break;
+
+                [label, labelI] = fetchRow(tierData, "mark =", timePointI);
+
+                label = label.trim();
+                if (label === "") continue;
+
+                entryList.push([parseFloat(timePoint), label]);
+            }
+            tier = new PointTier(tierName, entryList, tierStart, tierEnd);
         }
-
-        var labelArray = fetchRow(tierData, "mark =", timePointI);
-        var label = labelArray[0];
-        var labelI = labelArray[1];
-
-        label = label.trim();
-        if (label === "") continue;
-
-        entryList.push([parseFloat(timePoint), label]);
-      }
+        textgrid.addTier(tier);
     }
-
-    var tier = {
-      'name': tierName,
-      'type': tierType,
-      'start': tierStart,
-      'end': tierEnd,
-      'entryList': entryList
-    };
-    tierDict[tierName] = tier;
-    tierNameList.push(tierName);
-  }
-
-  var textgrid = {
-    'tierNameList': tierNameList,
-    'tierDict': tierDict,
-    'minT': tgStart,
-    'maxT': tgEnd,
-  };
-  return textgrid;
+    return textgrid;
 }
 
-var parseShortTextgrid = function(lines) {
+var parseShortTextgrid = function(data) {
 
+    let indexList = [];
+
+    let intervalIndicies = findAllSubstrings(data, '"IntervalTier"');
+    for (let i = 0; i < intervalIndicies.length; i++) {
+        indexList.push([intervalIndicies[i], true]);
+    }
+
+    let pointIndicies = findAllSubstrings(data, '"TextTier"');
+    for (let i = 0; i < pointIndicies.length; i++) {
+        indexList.push([pointIndicies[i], false]);
+    }
+
+    indexList.push([data.length, null]); // The 'end' of the file
+    indexList.sort(function(x, y) {
+        return x[0] < x[1]
+    });
+
+    let tupleList = [];
+    for (let i = 0; i < indexList.length - 1; i++) {
+        tupleList.push([indexList[i][0], indexList[i + 1][0], indexList[i][1]]);
+    }
+
+    // Set the textgrid's min and max times
+    let header = data.slice(0, tupleList[0][0]);
+    let headerList = header.split("\n");
+    let tgMin = parseFloat(headerList[3]);
+    let tgMax = parseFloat(headerList[4]);
+
+    // Add the textgrid tiers
+    let textgrid = new Textgrid();
+	textgrid.minTimestamp = tgMin;
+	textgrid.maxTimestamp = tgMax;
+	
+    for (let i = 0; i < tupleList.length; i++) {
+        let tier = null;
+
+        let blockStartI = tupleList[i][0];
+        let blockEndI = tupleList[i][1];
+        let isInterval = tupleList[i][2];
+
+        let tierData = data.slice(blockStartI, blockEndI);
+
+        let metaStartI = fetchRow(tierData, '', 0)[1];
+
+        // Tier meta-information
+        let [tierName, tierNameEndI] = fetchRow(tierData, '', metaStartI);
+        let [tierStartTime, tierStartTimeI] = fetchRow(tierData, '', tierNameEndI);
+        let [tierEndTime, tierEndTimeI] = fetchRow(tierData, '', tierStartTimeI);
+        let startTimeI = fetchRow(tierData, '', tierEndTimeI)[1];
+
+        tierStartTime = parseFloat(tierStartTime);
+        tierEndTime = parseFloat(tierEndTime);
+
+        // Tier entry data
+        let startTime, endTime, label, tierType, endTimeI, labelI = null;
+        let entryList = [];
+        if (isInterval === true) {
+            while (true) {
+                [startTime, endTimeI] = fetchRow(tierData, '', startTimeI);
+                if (endTimeI == -1) break;
+                
+                [endTime, labelI] = fetchRow(tierData, '', endTimeI);
+                [label, startTimeI] = fetchRow(tierData, '', labelI);
+
+                label = label.trim();
+                if (label === "") continue;
+                entryList.push([startTime, endTime, label]);
+            }
+            tier = new IntervalTier(tierName, entryList, tierStartTime, tierEndTime);
+        } else {
+            while (true) {
+                [startTime, labelI] = fetchRow(tierData, '', startTimeI);
+                if (labelI == -1) break;
+                
+                [label, startTimeI] = fetchRow(tierData, '', labelI);
+
+                label = label.trim();
+                if (label === "") continue;
+                entryList.push([startTime, label]);
+            }
+            tier = new PointTier(tierName, entryList, tierStartTime, tierEndTime);
+        }
+        textgrid.addTier(tier);
+    }
+	
+    return textgrid;
 }
 
 
 var readTextgrid = function(text) {
 
-  var lines = text.split('\n');
+    text = text.replace(/\r\n/g, "\n");
 
-  if (text.indexOf('ooTextFile short') == -1 || text.indexOf('item') > -1) {
-    jsonTextgrid = parseNormalTextgrid(text);
-  } else {
-    jsonTextgrid = parseShortTextgrid(lines);
-  }
+    if (text.indexOf('ooTextFile short') !== -1 || text.indexOf('item') === -1) {
+        textgrid = parseShortTextgrid(text);
+    } else {
+        textgrid = parseNormalTextgrid(text);
+    }
 
-  return jsonTextgrid;
+    return textgrid;
 }
