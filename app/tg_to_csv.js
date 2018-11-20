@@ -9,7 +9,6 @@ function loadFromLocal (file, handler) {
 }
 
 function tgLoaded (file, data) {
-    console.log(file.name);
     let outputFn = file.name.split('.')[0] + '.csv';
     let tg = readTextgrid(data);
     let csv = tgToCsv(tg, 'Vowel', ['Word', 'Vowel', 'Syllableid', 'Stress', 'Error']);
@@ -28,7 +27,10 @@ function download(content, fileName, contentType) {
 
 function tgToCsv (tg, pivotTierName, tierNameArray) {
 
-  let table = [tierNameArray, ];
+  let colHeader = tierNameArray.slice();
+  colHeader.push('Start Time');
+  colHeader.push('End Time');
+  let table = [colHeader, ];
   tier = tg.tierDict[pivotTierName];
   for (let i = 0; i < tier.entryList.length; i++) {
     let start = tier.entryList[i][0];
@@ -46,6 +48,8 @@ function tgToCsv (tg, pivotTierName, tierNameArray) {
       }
       row.push(subLabel);
     }
+    row.push(start);
+    row.push(stop);
     table.push(row);
   }
 
@@ -60,8 +64,6 @@ var dropzone = document.getElementById("dropzone");
   dropzone.ondrop = function(event) {
     event.preventDefault();
     this.className = "dropzone";
-
-    console.log(event.dataTransfer.files[0]);
 
     var fileInput = document.getElementById('dropzone');
     var fileDisplayArea = document.getElementById('displayarea');
