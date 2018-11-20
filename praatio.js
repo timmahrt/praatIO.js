@@ -186,7 +186,7 @@ class TextgridTier {
 
         let maxTime = this.maxTimestamp + tier.maxTimestamp;
 
-        let appendTier = tier.editTimestamps(this.maxTimestamp, allowOvershoot = True);
+        let appendTier = tier.editTimestamps(this.maxTimestamp, allowOvershoot = true);
 
         if (!this.tierType === tier.tierType) {
             throw new Error("Tier types must match when appending tiers.")
@@ -197,7 +197,7 @@ class TextgridTier {
             return x[0] < x[1]
         });
 
-        return self.newCopy(self.name, entryList, minTime, maxTime)
+        return this.newCopy(this.name, entryList, minTime, maxTime)
     }
 
     deleteEntry(entry) {
@@ -209,11 +209,11 @@ class TextgridTier {
         let returnList = [];
         for (let i = 0; i < this.entryList.length; i++) {
             if (usingRE === true) {
-                if (this.entryList[i].match(matchLabel)) returnList.append(i)
+                if (this.entryList[i].match(matchLabel)) returnList.push(i)
             } else if (substrMatchFlag === false) {
-                if (this.entryList[i] === matchLabel) returnList.append(i);
+                if (this.entryList[i] === matchLabel) returnList.push(i);
             } else {
-                if (this.entryList[i].includes(matchLabel)) returnList.append(i);
+                if (this.entryList[i].includes(matchLabel)) returnList.push(i);
             }
         }
         return returnList;
