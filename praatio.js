@@ -582,6 +582,7 @@ var parseNormalTextgrid = function(data) {
         let header = tmpArray[0];
         let tierData = tmpArray[1];
         let tierName = header.split("name = ", 2)[1].split("\n", 1)[0].trim();
+        tierName = tierName.slice(1, tierName.length - 1) // remove quotes
         let tierStart = header.split("xmin = ", 2)[1].split("\n", 1)[0].trim();
         let tierEnd = header.split("xmax = ", 2)[1].split("\n", 1)[0].trim();
 

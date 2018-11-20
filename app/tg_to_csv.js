@@ -44,7 +44,9 @@ function tgToCsv (tg, pivotTierName, tierNameArray) {
       let subLabel = '';
       if (subTG.tierNameList.includes(tierNameArray[j])) {
         let subTier = subTG.tierDict[tierNameArray[j]];
-        subLabel = subTier.entryList[0][2];
+        if (subTier.entryList.length > 0) {
+            subLabel = subTier.entryList[0][2];
+        }
       }
       row.push(subLabel);
     }
