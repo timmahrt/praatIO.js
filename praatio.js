@@ -315,6 +315,97 @@ class IntervalTier extends TextgridTier {
         super(name, entryList, minT, maxT);
         this.tierType = 'IntervalTier';
     }
+    crop(cropStart, cropEnd, mode, rebaseToZero) {
+        /*
+        Creates a new tier with all entries that fit inside the new interval
+        
+        mode = {'strict', 'lax', 'truncated'}
+            If 'strict', only intervals wholly contained by the crop
+                interval will be kept
+            If 'lax', partially contained intervals will be kept
+            If 'truncated', partially contained intervals will be
+                truncated to fit within the crop region.
+        
+        If rebaseToZero is true, the cropped textgrid values will be
+            subtracted by the cropStart
+        */
+        let newEntryList = [];
+        for (let i = 0; i < this.entryList.length; i++) {
+        	let entry = this.entryList[i];
+            let matchedEntry = null;
+            
+            let intervalStart = entry[0];
+            let intervalEnd = entry[1];
+            let intervalLabel = entry[2];
+            
+            // Don't need to investigate if the interval is before or after
+            // the crop region
+            if (intervalEnd <= cropStart || intervalStart >= cropEnd) {
+                continue
+            }
+            
+            // Determine if the current subEntry is wholly contained
+            // within the superEntry
+            if (intervalStart >= cropStart && intervalEnd <= cropEnd) {
+                matchedEntry = entry
+            }
+            
+            // If it is only partially contained within the superEntry AND
+            // inclusion is 'lax', include it anyways
+            else if (mode === 'lax' && (intervalStart >= cropStart || intervalEnd <= cropEnd)) {
+                matchedEntry = entry
+            }
+            
+            // If not strict, include partial tiers on the edges
+            // -- regardless, record how much information was lost
+            //        - for strict=true, the total time of the cut interval
+            //        - for strict=false, the portion of the interval that lies
+            //            outside the new interval
+
+            // The current interval stradles the end of the new interval
+            else if (intervalStart >= cropStart && intervalEnd > cropEnd) {
+                if (mode === "truncated") {
+                    matchedEntry = [intervalStart, cropEnd, intervalLabel]
+                }
+            }
+            
+            // The current interval stradles the start of the new interval
+            else if (intervalStart < cropStart && intervalEnd <= cropEnd) {
+                if (mode === "truncated") {
+                    matchedEntry = [cropStart, intervalEnd, intervalLabel]
+                }
+            }
+
+            // The current interval contains the new interval completely
+            else if (intervalStart <= cropStart && intervalEnd >= cropEnd) {
+                if (mode === "lax") {
+                    matchedEntry = entry
+                }
+                else if (mode === "truncated") {
+                    matchedEntry = [cropStart, cropEnd, intervalLabel]
+                }
+            }
+                        
+            if (matchedEntry !== null) {
+                newEntryList.push(matchedEntry)
+            }
+    	}
+
+        let minT = cropStart;
+        let maxT = cropEnd;
+        if (rebaseToZero === true) {
+        	newEntryList = newEntryList.map(entryList => [entryList[0] - cropStart,
+        												  entryList[1] - cropStart,
+        												  entryList[2]])
+            minT = 0
+            maxT = cropEnd - cropStart
+        }
+
+        // Create subtier
+        let croppedTier = new IntervalTier(this.name, newEntryList, minT, maxT)
+    
+        return croppedTier
+    }
 }
 
 class Textgrid {
@@ -346,6 +437,41 @@ class Textgrid {
         }
     }
 
+    crop(cropStart, cropEnd, mode, rebaseToZero) {
+        /*
+        Creates a textgrid where all intervals fit within the crop region
+        
+        mode = {'strict', 'lax', 'truncated'}
+            If 'strict', only intervals wholly contained by the crop
+                interval will be kept
+            If 'lax', partially contained intervals will be kept
+            If 'truncated', partially contained intervals will be
+                truncated to fit within the crop region.
+            
+        If rebaseToZero is true, the cropped textgrid values will be
+            subtracted by the cropStart
+        */
+        let newTG = new Textgrid();
+        
+        let minT = cropStart;
+        let maxT = cropEnd;
+        if (rebaseToZero === true) {
+            minT = 0;
+            maxT = cropEnd - cropStart;
+        }
+    
+        newTG.minTimestamp = minT;
+        newTG.maxTimestamp = maxT;
+        for (let i = 0; i < this.tierNameList.length; i++) {
+        	let tierName = this.tierNameList[i];
+            let tier = this.tierDict[tierName];
+            let newTier = tier.crop(cropStart, cropEnd, mode, rebaseToZero);
+            newTG.addTier(newTier);
+        }
+        
+        return newTG;
+    }
+    
     newCopy() {
         let textgrid = new Textgrid();
         for (i = 0; i < this.tierNameList; i++) {
