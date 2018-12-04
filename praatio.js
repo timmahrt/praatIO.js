@@ -10,11 +10,11 @@ TODO: add writeTextgrid()?
 This is a translation of the file reading and writing capabilities of the python praatio
 library.
 */
-const INTERVAL_TIER = "interval_tier";
-const POINT_TIER = "point_tier";
+const INTERVAL_TIER = 'interval_tier';
+const POINT_TIER = 'point_tier';
 const MIN_INTERVAL_LENGTH = 0.00000001; // Arbitrary threshold
 
-function fillInBlanks(tier, blankLabel = "", startTime = null, endTime = null) {
+function fillInBlanks (tier, blankLabel = '', startTime = null, endTime = null) {
   /*
   Fills in the space between intervals with empty space
 
@@ -46,7 +46,7 @@ function fillInBlanks(tier, blankLabel = "", startTime = null, endTime = null) {
 
   // Special case: If there is a gap at the start of the file
   if (parseFloat(newEntryList[0][0]) < parseFloat(startTime)) {
-    throw new Error("Tier data is before the tier start time.");
+    throw new Error('Tier data is before the tier start time.');
   }
   if (parseFloat(newEntryList[0][0]) > parseFloat(startTime)) {
     newEntryList.splice(0, 0, [startTime, newEntryList[0][0], blankLabel]);
@@ -55,7 +55,7 @@ function fillInBlanks(tier, blankLabel = "", startTime = null, endTime = null) {
   // Special case: If there is a gap at the end of the file
   if (endTime !== null) {
     if (parseFloat(newEntryList[-1][1]) > parseFloat(endTime)) {
-      throw new Error("Tier data is after the tier end time.");
+      throw new Error('Tier data is after the tier end time.');
     }
     if (parseFloat(newEntryList[-1][1]) < parseFloat(endTime)) {
       newEntryList.splice([newEntryList[-1][1], endTime, blankLabel]);
@@ -66,7 +66,7 @@ function fillInBlanks(tier, blankLabel = "", startTime = null, endTime = null) {
 }
 
 
-function removeUltrashortIntervals(tier, minLength) {
+function removeUltrashortIntervals (tier, minLength) {
   /*
   Remove intervals that are very tiny
 
@@ -111,9 +111,9 @@ function removeUltrashortIntervals(tier, minLength) {
   });
 }
 
-// Python-like split from 
+// Python-like split from
 // http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
-function extended_split(str, separator, max) {
+function extended_split (str, separator, max) {
   let out = [],
     index = 0,
     next;
@@ -130,7 +130,7 @@ function extended_split(str, separator, max) {
   return out;
 }
 
-function findAllSubstrings(sourceStr, subStr) {
+function findAllSubstrings (sourceStr, subStr) {
   let indexList = [],
     index = sourceStr.indexOf(subStr);
   while (index !== -1) {
@@ -142,14 +142,14 @@ function findAllSubstrings(sourceStr, subStr) {
   return indexList;
 }
 
-function fetchRow(dataStr, searchStr, index) {
+function fetchRow (dataStr, searchStr, index) {
   let startIndex = dataStr.indexOf(searchStr, index) + searchStr.length;
-  let endIndex = dataStr.indexOf("\n", startIndex);
+  let endIndex = dataStr.indexOf('\n', startIndex);
 
   let word = dataStr.substring(startIndex, endIndex);
   word = word.trim();
 
-  if (word[0] == '"' && word[word.length - 1] == '"') {
+  if (word[0] === '"' && word[word.length - 1] === '"') {
     word = word.substring(1, word.length - 1);
   }
   word = word.trim();
@@ -160,7 +160,7 @@ function fetchRow(dataStr, searchStr, index) {
   return [word, endIndex];
 }
 
-function strToIntOrFloat(inputStr) {
+function strToIntOrFloat (inputStr) {
   let retNum = null;
   if (inputStr.includes('.')) {
     retNum = parseFloat(inputStr);
@@ -172,7 +172,7 @@ function strToIntOrFloat(inputStr) {
 
 class TextgridTier {
 
-  constructor(name, entryList, minT, maxT) {
+  constructor (name, entryList, minT, maxT) {
     this.name = name;
     this.entryList = entryList;
     this.minTimestamp = minT;
@@ -180,7 +180,7 @@ class TextgridTier {
     this.tierType = null;
   }
 
-  appendTier(tier) {
+  appendTier (tier) {
     let minTime = this.minTimestamp;
     if (tier.minTimestamp < minTime) minTime = tier.minTimestamp;
 
@@ -189,7 +189,7 @@ class TextgridTier {
     let appendTier = tier.editTimestamps(this.maxTimestamp, allowOvershoot = true);
 
     if (this.tierType !== tier.tierType) {
-      throw new Error("Tier types must match when appending tiers.");
+      throw new Error('Tier types must match when appending tiers.');
     }
 
     let entryList = this.entryList + appendTier.entryList;
@@ -200,12 +200,12 @@ class TextgridTier {
     return this.newCopy(this.name, entryList, minTime, maxTime);
   }
 
-  deleteEntry(entry) {
+  deleteEntry (entry) {
     let i = this.entryList.indexOf(entry);
     this.entryList.splice(i, 1);
   }
 
-  find(matchLabel, substrMatchFlag, usingRE) {
+  find (matchLabel, substrMatchFlag, usingRE) {
     let returnList = [];
     for (let i = 0; i < this.entryList.length; i++) {
       if (usingRE === true) {
@@ -233,13 +233,13 @@ class TextgridTier {
     return this.constructor(name, entryList, minTimestamp, maxTimestamp);
   }
 
-  sort() {
+  sort () {
     this.entryList.sort(function(x, y) {
       return x[0] < x[1];
     });
   }
 
-  union(tier) {
+  union (tier) {
     let retTier = this.newCopy();
 
     for (let i = 0; i < tier.entryList.length; i++) {
@@ -249,8 +249,7 @@ class TextgridTier {
 }
 
 class PointTier extends TextgridTier {
-  constructor(name, entryList, minT = null, maxT = null) {
-
+  constructor (name, entryList, minT = null, maxT = null) {
     entryList = entryList.map(([timeV, label]) => [parseFloat(timeV), label]);
 
     // Determine the min and max timestamps
@@ -266,7 +265,7 @@ class PointTier extends TextgridTier {
     this.tierType = 'TextTier';
   }
 
-  crop(cropStart, cropEnd, mode, rebaseToZero = true) {
+  crop (cropStart, cropEnd, mode, rebaseToZero = true) {
     /*
     Creates a new tier containing all entires inside the new interval
 
@@ -291,12 +290,10 @@ class PointTier extends TextgridTier {
     let subTier = new PointTier(this.name, newEntryList, minT, maxT);
     return subTier;
   }
-
 }
 
 class IntervalTier extends TextgridTier {
-  constructor(name, entryList, minT = null, maxT = null) {
-
+  constructor (name, entryList, minT = null, maxT = null) {
     entryList = entryList.map(([startTime, endTime, label]) => [parseFloat(startTime), parseFloat(endTime), label]);
 
     // Determine the min and max timestamps
@@ -314,17 +311,17 @@ class IntervalTier extends TextgridTier {
     super(name, entryList, minT, maxT);
     this.tierType = 'IntervalTier';
   }
-  crop(cropStart, cropEnd, mode, rebaseToZero) {
+  crop (cropStart, cropEnd, mode, rebaseToZero) {
     /*
     Creates a new tier with all entries that fit inside the new interval
-        
+
     mode = {'strict', 'lax', 'truncated'}
         If 'strict', only intervals wholly contained by the crop
             interval will be kept
         If 'lax', partially contained intervals will be kept
         If 'truncated', partially contained intervals will be
             truncated to fit within the crop region.
-        
+
     If rebaseToZero is true, the cropped textgrid values will be
         subtracted by the cropStart
     */
@@ -340,7 +337,6 @@ class IntervalTier extends TextgridTier {
       // Don't need to investigate if the interval is before or after
       // the crop region
       if (intervalEnd <= cropStart || intervalStart >= cropEnd) continue;
-
 
       // Determine if the current subEntry is wholly contained
       // within the superEntry
@@ -362,23 +358,23 @@ class IntervalTier extends TextgridTier {
 
       // The current interval stradles the end of the new interval
       else if (intervalStart >= cropStart && intervalEnd > cropEnd) {
-        if (mode === "truncated") {
+        if (mode === 'truncated') {
           matchedEntry = [intervalStart, cropEnd, intervalLabel];
         }
       }
 
       // The current interval stradles the start of the new interval
       else if (intervalStart < cropStart && intervalEnd <= cropEnd) {
-        if (mode === "truncated") {
+        if (mode === 'truncated') {
           matchedEntry = [cropStart, intervalEnd, intervalLabel];
         }
       }
 
       // The current interval contains the new interval completely
       else if (intervalStart <= cropStart && intervalEnd >= cropEnd) {
-        if (mode === "lax") {
+        if (mode === 'lax') {
           matchedEntry = entry;
-        } else if (mode === "truncated") {
+        } else if (mode === 'truncated') {
           matchedEntry = [cropStart, cropEnd, intervalLabel];
         }
       }
@@ -407,7 +403,7 @@ class IntervalTier extends TextgridTier {
 }
 
 class Textgrid {
-  constructor() {
+  constructor () {
     this.tierNameList = [];
     this.tierDict = {};
 
@@ -415,10 +411,9 @@ class Textgrid {
     this.maxTimestamp = null;
   }
 
-  addTier(tier, tierIndex = null) {
-
+  addTier (tier, tierIndex = null) {
     if (Object.keys(this.tierDict).includes(tier.name)) {
-      throw new Error("Tier name already exists in textgrid");
+      throw new Error('Tier name already exists in textgrid');
     }
 
     if (tierIndex === null) this.tierNameList.push(tier.name);
@@ -435,17 +430,17 @@ class Textgrid {
     }
   }
 
-  crop(cropStart, cropEnd, mode, rebaseToZero) {
+  crop (cropStart, cropEnd, mode, rebaseToZero) {
     /*
     Creates a textgrid where all intervals fit within the crop region
-        
+
     mode = {'strict', 'lax', 'truncated'}
         If 'strict', only intervals wholly contained by the crop
             interval will be kept
         If 'lax', partially contained intervals will be kept
         If 'truncated', partially contained intervals will be
             truncated to fit within the crop region.
-        
+
     If rebaseToZero is true, the cropped textgrid values will be
         subtracted by the cropStart
     */
@@ -470,7 +465,7 @@ class Textgrid {
     return newTG;
   }
 
-  newCopy() {
+  newCopy () {
     let textgrid = new Textgrid();
     for (let i = 0; i < this.tierNameList; i++) {
       let tierName = this.tierNameList[i];
@@ -484,25 +479,25 @@ class Textgrid {
     return textgrid;
   }
 
-  renameTier(oldName, newName) {
+  renameTier (oldName, newName) {
     let oldTier = this.tierDict[oldName];
     let tierIndex = this.tierNameList.indexOf(oldName);
     this.removeTier(oldName);
     this.addTier(oldTier, tierIndex);
   }
 
-  removeTier(name) {
+  removeTier (name) {
     this.tierNameList.splice(this.tierNameList.index(name), 1);
     delete this.tierDict[name];
   }
 
-  replaceTier(name, newTier) {
+  replaceTier (name, newTier) {
     let tierIndex = this.tierNameList.indexOf(name);
     this.removeTier(name);
     this.addTier(newTier, tierIndex);
   }
 
-  getOutputText(fn, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
+  getOutputText (fn, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
     /*
     Formats the textgrid for saving to a .TextGrid fileimumIntervalLength is null, then ultrashortintervals
     will not be checked for.
@@ -517,7 +512,7 @@ class Textgrid {
       let tier = this.tierDict[tierName];
 
       if (tier instanceof IntervalTier) {
-        tier = fillInBlanks(tier, "", this.minTimestamp, this.maxTimestamp);
+        tier = fillInBlanks(tier, '', this.minTimestamp, this.maxTimestamp);
         if (minimumIntervalLength !== null) {
           tier = removeUltrashortIntervals(tier, minimumIntervalLength);
         }
@@ -530,11 +525,11 @@ class Textgrid {
     }
 
     // Header
-    let outputTxt = "";
+    let outputTxt = '';
     outputTxt += 'File type = "ooTextFile short"\n';
     outputTxt += 'Object class = "TextGrid"\n\n';
-    outputTxt += "${this.minTimestamp}\n${this.maxTimestamp}\n";
-    outputTxt += "<exists>\n${this.tierNameList}\n";
+    outputTxt += '${this.minTimestamp}\n${this.maxTimestamp}\n';
+    outputTxt += '<exists>\n${this.tierNameList}\n';
 
     for (let i = 0; i < this.tierNameList.length; i++) {
       outputTxt += this.tierDict[this.tierNameList[i]].getAsText();
@@ -544,14 +539,13 @@ class Textgrid {
   }
 }
 
-function parseNormalTextgrid(data) {
-
+function parseNormalTextgrid (data) {
   // Toss header
   let tierList = data.split('item [');
   let textgridHeader = tierList.shift();
 
-  let tgMin = parseFloat(textgridHeader.split("xmin = ", 2)[1].split("\n", 1)[0].trim());
-  let tgMax = parseFloat(textgridHeader.split("xmax = ", 2)[1].split("\n", 1)[0].trim());
+  let tgMin = parseFloat(textgridHeader.split('xmin = ', 2)[1].split('\n', 1)[0].trim());
+  let tgMax = parseFloat(textgridHeader.split('xmax = ', 2)[1].split('\n', 1)[0].trim());
 
   // Process each tier individually
   //tierList = data.split('item');
@@ -567,55 +561,60 @@ function parseNormalTextgrid(data) {
 
     // Get tier type
     let tierType = POINT_TIER;
-    let searchWord = "points";
+    let searchWord = 'points';
     if (tierTxt.indexOf('class = "IntervalTier"') > -1) {
       tierType = INTERVAL_TIER;
-      searchWord = "intervals";
+      searchWord = 'intervals';
     }
 
     // Get tier meta-information
     let tmpArray = extended_split(tierTxt, searchWord, 2);
     let header = tmpArray[0];
     let tierData = tmpArray[1];
-    let tierName = header.split("name = ", 2)[1].split("\n", 1)[0].trim();
+    let tierName = header.split('name = ', 2)[1].split('\n', 1)[0].trim();
     tierName = tierName.slice(1, tierName.length - 1); // remove quotes
-    let tierStart = header.split("xmin = ", 2)[1].split("\n", 1)[0].trim();
-    let tierEnd = header.split("xmax = ", 2)[1].split("\n", 1)[0].trim();
+    let tierStart = header.split('xmin = ', 2)[1].split('\n', 1)[0].trim();
+    let tierEnd = header.split('xmax = ', 2)[1].split('\n', 1)[0].trim();
 
     // Get the tier entry list
     let entryList = [];
     let labelI = 0;
-    let label, tier = null;
-    if (tierType == INTERVAL_TIER) {
-      let timeStartI, timeEndI, timeStart, timeEnd = null;
+    let label = null;
+    let tier = null;
+    console.log(tierType)
+    if (tierType === INTERVAL_TIER) {
+      let timeStartI = null;
+      let timeEndI = null;
+      let timeStart = null;
+      let timeEnd = null;
       while (true) {
-        [timeStart, timeStartI] = fetchRow(tierData, "xmin = ", labelI);
+        [timeStart, timeStartI] = fetchRow(tierData, 'xmin = ', labelI);
 
         // Break condition here.  indexof loops around at the end of a file
         if (timeStartI <= labelI) break;
 
-        [timeEnd, timeEndI] = fetchRow(tierData, "xmax = ", timeStartI);
-        [label, labelI] = fetchRow(tierData, "text =", timeEndI);
+        [timeEnd, timeEndI] = fetchRow(tierData, 'xmax = ', timeStartI);
+        [label, labelI] = fetchRow(tierData, 'text =', timeEndI);
 
         label = label.trim();
-        if (label === "") continue;
+        if (label === '') continue;
 
         entryList.push([parseFloat(timeStart), parseFloat(timeEnd), label]);
       }
       tier = new IntervalTier(tierName, entryList, tierStart, tierEnd);
-
     } else {
-      let timePointI, timePoint = null;
+      let timePointI = null;
+      let timePoint = null;
       while (true) {
-        [timePoint, timePointI] = fetchRow(tierData, "number = ", labelI);
+        [timePoint, timePointI] = fetchRow(tierData, 'number = ', labelI);
 
         // Break condition here.  indexof loops around at the end of a file
         if (timePointI <= labelI) break;
 
-        [label, labelI] = fetchRow(tierData, "mark =", timePointI);
+        [label, labelI] = fetchRow(tierData, 'mark =', timePointI);
 
         label = label.trim();
-        if (label === "") continue;
+        if (label === '') continue;
 
         entryList.push([parseFloat(timePoint), label]);
       }
@@ -626,8 +625,7 @@ function parseNormalTextgrid(data) {
   return textgrid;
 }
 
-function parseShortTextgrid(data) {
-
+function parseShortTextgrid (data) {
   let indexList = [];
 
   let intervalIndicies = findAllSubstrings(data, '"IntervalTier"');
@@ -641,7 +639,7 @@ function parseShortTextgrid(data) {
   }
 
   indexList.push([data.length, null]); // The 'end' of the file
-  indexList.sort(function(x, y) {
+  indexList.sort(function (x, y) {
     return x[0] < x[1];
   });
 
@@ -652,7 +650,7 @@ function parseShortTextgrid(data) {
 
   // Set the textgrid's min and max times
   let header = data.slice(0, tupleList[0][0]);
-  let headerList = header.split("\n");
+  let headerList = header.split('\n');
   let tgMin = parseFloat(headerList[3]);
   let tgMax = parseFloat(headerList[4]);
 
@@ -682,30 +680,36 @@ function parseShortTextgrid(data) {
     tierEndTime = parseFloat(tierEndTime);
 
     // Tier entry data
-    let startTime, endTime, label, tierType, endTimeI, labelI = null;
+    let startTime = null;
+    let endTime = null;
+    let label = null;
+    let tierType = null;
+    let endTimeI = null;
+    let labelI = null;
+
     let entryList = [];
     if (isInterval === true) {
       while (true) {
         [startTime, endTimeI] = fetchRow(tierData, '', startTimeI);
-        if (endTimeI == -1) break;
+        if (endTimeI === -1) break;
 
         [endTime, labelI] = fetchRow(tierData, '', endTimeI);
         [label, startTimeI] = fetchRow(tierData, '', labelI);
 
         label = label.trim();
-        if (label === "") continue;
+        if (label === '') continue;
         entryList.push([startTime, endTime, label]);
       }
       tier = new IntervalTier(tierName, entryList, tierStartTime, tierEndTime);
     } else {
       while (true) {
         [startTime, labelI] = fetchRow(tierData, '', startTimeI);
-        if (labelI == -1) break;
+        if (labelI === -1) break;
 
         [label, startTimeI] = fetchRow(tierData, '', labelI);
 
         label = label.trim();
-        if (label === "") continue;
+        if (label === '') continue;
         entryList.push([startTime, label]);
       }
       tier = new PointTier(tierName, entryList, tierStartTime, tierEndTime);
@@ -716,10 +720,8 @@ function parseShortTextgrid(data) {
   return textgrid;
 }
 
-
-function readTextgrid(text) {
-
-  text = text.replace(/\r\n/g, "\n");
+function readTextgrid (text) {
+  text = text.replace(/\r\n/g, '\n');
 
   let textgrid;
   if (text.indexOf('ooTextFile short') !== -1 || text.indexOf('item') === -1) {
