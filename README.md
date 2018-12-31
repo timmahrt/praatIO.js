@@ -1,35 +1,39 @@
 
----------
-praatIO.js
----------
+# praatIO
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg?
-   :target: http://opensource.org/licenses/MIT
+[![](https://img.shields.io/badge/license-MIT-blue.svg?)](http://opensource.org/licenses/MIT)
+[![](https://img.shields.io/npm/v/praatio.svg)](https://www.npmjs.com/package/praatio)
 
-A library for reading and writing textgrid files.  Currently has limited functionality
-compared with praatIO for python.  More functionality may be added in the future 
-as needed.
+A library for reading and writing textgrid files in javascript.
 
 
-Major revisions
-================
+## Major revisions
 
+Ver 1.0 (December 31, 2018)
+- Bugfixes and style refactoring (ES6)
+- Passing linter and building
 
-Ver 1.0 (June 06, 2015)
-
+Ver 0.0 (June 06, 2015)
 - Support for reading in a longform textgrid as JSON
-
 - Handles both point tiers and interval tiers
 
 
-Requirements
-==============
+## Requirements
 
-None?
+None
 
 
-Usage
-=========
+## Installation
+
+`npm install praatio`
+
+
+## Usage
+
+```javascript
+import { Textgrid, IntervalTier, PointTier, textgridToCsv, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH } from 'praatio/textgrid.js'
+import readTextgrid from 'praatio/textgrid_io.js'
+```
 
 TODO: Make examples
 
