@@ -1,6 +1,6 @@
 {
   "name": "praatio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "scripts": {
     "linter": "eslint --ignore-path .gitignore ."
