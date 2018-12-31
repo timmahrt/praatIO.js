@@ -111,7 +111,7 @@ function textgridToCsv (tg, pivotTierName, tierNameArray) {
   for (let i = 0; i < tier.entryList.length; i++) {
     let start = tier.entryList[i][0];
     let stop = tier.entryList[i][1];
-    let label = tier.entryList[i][2];
+    // let label = tier.entryList[i][2];
 
     let subTG = tg.crop(start, stop, 'truncated', false);
 
@@ -482,7 +482,7 @@ class Textgrid {
         if (minimumIntervalLength !== null) {
           tier = removeUltrashortIntervals(tier, minimumIntervalLength);
         }
-        this.tierDict[name] = tier;
+        this.tierDict[tierName] = tier;
       }
     }
 
@@ -505,4 +505,4 @@ class Textgrid {
   }
 }
 
-export {Textgrid, IntervalTier, PointTier, textgridToCsv, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH};
+export { Textgrid, IntervalTier, PointTier, textgridToCsv, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };

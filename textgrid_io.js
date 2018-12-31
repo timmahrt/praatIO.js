@@ -1,4 +1,4 @@
-import {Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER} from './textgrid.js'
+import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER } from './textgrid.js'
 
 // Python-like split from
 // http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
