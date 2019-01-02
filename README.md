@@ -31,8 +31,8 @@ None
 ## Usage
 
 ```javascript
-import { Textgrid, IntervalTier, PointTier, textgridToCsv, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH } from 'praatio/textgrid.js'
-import readTextgrid from 'praatio/textgrid_io.js'
+import { Textgrid, IntervalTier, PointTier, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH } from 'praatio/textgrid.js'
+import { parseTextgrid, serializeTextgrid, serializeTextgridToCsv } from 'praatio/textgrid_io.js'
 ```
 
 TODO: Make examples

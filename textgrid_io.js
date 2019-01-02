@@ -1,7 +1,9 @@
-import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER } from './textgrid.js'
+import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER, MIN_INTERVAL_LENGTH } from './textgrid.js'
 
-// Python-like split from
-// http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
+/**
+Python-like split from
+http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
+*/
 function extendedSplit (str, separator, max) {
   let out = [];
   let index = 0;
@@ -93,7 +95,6 @@ function parseNormalTextgrid (data) {
     let labelI = 0;
     let label = null;
     let tier = null;
-    console.log(tierType)
     if (tierType === INTERVAL_TIER) {
       let timeStartI = null;
       let timeEndI = null;
@@ -232,7 +233,214 @@ function parseShortTextgrid (data) {
   return textgrid;
 }
 
-function readTextgrid (text) {
+/**
+Fills in the space between intervals with empty space
+
+This is necessary to do when saving to create a well-formed textgrid
+*/
+function fillInBlanks (tier, blankLabel = '', startTime = null, endTime = null) {
+  if (startTime === null) startTime = tier.minTimestamp;
+  if (endTime === null) endTime = tier.maxTimestamp;
+
+  // Special case: empty textgrid
+  if (tier.entryList.length === 0) tier.entryList.push([startTime, endTime, blankLabel]);
+
+  // Create a new entry list
+  let entryList = tier.entryList.slice();
+  let entry = entryList[0];
+  let prevEnd = parseFloat(entry[1]);
+  let newEntryList = [entry];
+
+  for (let i = 1; i < entryList.length; i++) {
+    let newStart = parseFloat(entryList[i][0]);
+    let newEnd = parseFloat(entryList[i][1]);
+
+    if (prevEnd < newStart) newEntryList.push([prevEnd, newStart, blankLabel]);
+
+    newEntryList.push(entryList[i]);
+
+    prevEnd = newEnd;
+  }
+
+  // Special case: If there is a gap at the start of the file
+  if (parseFloat(newEntryList[0][0]) < parseFloat(startTime)) {
+    throw new Error('Tier data is before the tier start time.');
+  }
+  if (parseFloat(newEntryList[0][0]) > parseFloat(startTime)) {
+    newEntryList.splice(0, 0, [startTime, newEntryList[0][0], blankLabel]);
+  }
+
+  // Special case: If there is a gap at the end of the file
+  if (endTime !== null) {
+    let lastI = newEntryList.length - 1
+    if (parseFloat(newEntryList[lastI][1]) > parseFloat(endTime)) {
+      throw new Error('Tier data is after the tier end time.');
+    }
+    if (parseFloat(newEntryList[lastI][1]) < parseFloat(endTime)) {
+      newEntryList.push([newEntryList[lastI][1], endTime, blankLabel]);
+    }
+  }
+  return tier.newCopy({ entryList: newEntryList });
+}
+
+/** Prints each entry in the tier on a separate line w/ timing info */
+function tierToText (tier) {
+  let text = ''
+  text += `"${tier.tierType}"\n`;
+  text += `"${tier.name}"\n`;
+  text += `${tier.minTimestamp}\n${tier.maxTimestamp}\n`;
+  text += `${tier.entryList.length}\n`;
+
+  for (let i = 0; i < tier.entryList.length; i++) {
+    let entry = tier.entryList[i];
+    entry = entry.map(val => `${val}`);
+
+    let labelI;
+    if (tier.tierType === POINT_TIER) {
+      labelI = 1;
+    }
+    else if (tier.tierType === INTERVAL_TIER) {
+      labelI = 2;
+    }
+
+    entry[labelI] = `"${entry[labelI]}"`
+    text += entry.join('\n') + '\n';
+  }
+
+  return text
+}
+
+/**
+Remove intervals that are very tiny
+
+Doing many small manipulations on intervals can lead to the creation
+of ultrashort intervals (e.g. 1*10^-15 seconds long).  This function
+removes such intervals.
+*/
+function removeUltrashortIntervals (tier, minLength) {
+  // First, remove tiny intervals
+  let newEntryList = [];
+  let j = 0;
+  for (let i = 0; i < tier.entryList.length; i++) {
+    let [start, stop, label] = tier.entryList[i];
+    if (stop - start < minLength) {
+      // Correct ultra-short entries
+      if (newEntryList.length > 0) {
+        newEntryList[j - 1] = (newEntryList[j - 1], stop, newEntryList[j - 1]);
+      }
+    } else {
+      // Special case: the first entry in oldEntryList was ultra-short
+      if (newEntryList.length === 0 && start !== 0) {
+        newEntryList.push([0, stop, label]);
+      } else { // Normal case
+        newEntryList.push([start, stop, label]);
+      }
+      j += 1;
+    }
+  }
+
+  // Next, shift near equivalent tiny boundaries
+  j = 0;
+  while (j < newEntryList.length - 1) {
+    let diff = Math.abs(newEntryList[j][1] - newEntryList[j + 1][0]);
+    if (diff > 0 && diff < MIN_INTERVAL_LENGTH) {
+      newEntryList[j] = [newEntryList[j][0], newEntryList[j + 1][0], newEntryList[j][2]];
+    }
+    j += 1;
+  }
+
+  return tier.newCopy({
+    entryList: newEntryList
+  });
+}
+
+/**
+Formats a textgrid instance for saving to a .csv file
+
+One row is listed for each entry in the tier with name /pivotTierName/.
+The corresponding entry in each tier will be provided on the same row
+along with the start and end time of the entry from the pivot tier.
+*/
+function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null) {
+  if (!tierNameList) tierNameList = tg.tierNameList;
+  let colHeader = tierNameList.slice();
+  colHeader.push('Start Time');
+  colHeader.push('End Time');
+  let table = [colHeader];
+  let tier = tg.tierDict[pivotTierName];
+  for (let i = 0; i < tier.entryList.length; i++) {
+    let start = tier.entryList[i][0];
+    let stop = tier.entryList[i][1];
+    // let label = tier.entryList[i][2];
+
+    let subTG = tg.crop(start, stop, 'truncated', false);
+
+    let row = [];
+    for (let j = 0; j < tierNameList.length; j++) {
+      let subLabel = '';
+      if (subTG.tierNameList.includes(tierNameList[j])) {
+        let subTier = subTG.tierDict[tierNameList[j]];
+        if (subTier.entryList.length > 0) {
+          subLabel = subTier.entryList[0][2];
+        }
+      }
+      row.push(subLabel);
+    }
+    row.push(start);
+    row.push(stop);
+    table.push(row);
+  }
+
+  table = table.map(row => row.join(','));
+  let csv = table.join('\n');
+
+  return csv;
+}
+
+/**
+Formats a textgrid instance for saving to a .TextGrid file.
+
+If minimumIntervalLength is null, then ultrashortintervals will not be checked for.
+*/
+function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
+  for (let i = 0; i < tg.tierNameList.length; i++) {
+    tg.tierDict[tg.tierNameList[i]].sort();
+  }
+
+  // Fill in the blank spaces for interval tiers
+  for (let i = 0; i < tg.tierNameList.length; i++) {
+    let tierName = tg.tierNameList[i];
+    let tier = tg.tierDict[tierName];
+
+    if (tier instanceof IntervalTier) {
+      tier = fillInBlanks(tier, '', tg.minTimestamp, tg.maxTimestamp);
+      if (minimumIntervalLength !== null) {
+        tier = removeUltrashortIntervals(tier, minimumIntervalLength);
+      }
+      tg.tierDict[tierName] = tier;
+    }
+  }
+
+  for (let i = 0; i < tg.tierNameList.length; i++) {
+    tg.tierDict[tg.tierNameList[i]].sort();
+  }
+
+  // Header
+  let outputTxt = '';
+  outputTxt += 'File type = "ooTextFile short"\n';
+  outputTxt += 'Object class = "TextGrid"\n\n';
+  outputTxt += `${tg.minTimestamp}\n${tg.maxTimestamp}\n`;
+  outputTxt += `<exists>\n${tg.tierNameList.length}\n`;
+
+  for (let i = 0; i < tg.tierNameList.length; i++) {
+    outputTxt += tierToText(tg.tierDict[tg.tierNameList[i]]);
+  }
+
+  return outputTxt;
+}
+
+/** Creates an instance of a Textgrid from the contents of a .Textgrid file. */
+function parseTextgrid (text) {
   text = text.replace(/\r\n/g, '\n');
 
   let textgrid;
@@ -245,4 +453,4 @@ function readTextgrid (text) {
   return textgrid;
 }
 
-export default readTextgrid;
+export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv };
