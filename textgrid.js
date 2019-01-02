@@ -14,6 +14,7 @@ class TextgridTier {
     this.minTimestamp = minT;
     this.maxTimestamp = maxT;
     this.tierType = null;
+    this.sort()
   }
 
   appendTier (tier) {
@@ -29,9 +30,6 @@ class TextgridTier {
     }
 
     let entryList = this.entryList + appendTier.entryList;
-    entryList.sort(function (x, y) {
-      return x[0] < x[1];
-    });
 
     return this.newCopy(this.name, entryList, minTime, maxTime);
   }
@@ -71,7 +69,7 @@ class TextgridTier {
 
   sort () {
     this.entryList.sort(function (x, y) {
-      return x[0] < x[1];
+      return x[0] - y[0];
     });
   }
 

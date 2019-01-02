@@ -153,7 +153,7 @@ function parseShortTextgrid (data) {
 
   indexList.push([data.length, null]); // The 'end' of the file
   indexList.sort(function (x, y) {
-    return x[0] < x[1];
+    return x[0] - y[0];
   });
 
   let tupleList = [];
