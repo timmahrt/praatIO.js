@@ -3,7 +3,8 @@
   "version": "1.0.1",
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "scripts": {
-    "linter": "eslint --ignore-path .gitignore ."
+    "linter": "eslint --ignore-path .gitignore .",
+    "test": "jest --config=./test/unit/jest.conf.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,11 @@
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-node": "^8.0.0",
     "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0"
+    "eslint-plugin-standard": "^4.0.0",
+    "jest": "^23.6.0"
+  },
+  "dependencies": {
+    "babel-jest": "^23.6.0",
+    "babel-preset-env": "^1.7.0"
   }
 }
