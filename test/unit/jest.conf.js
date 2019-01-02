@@ -14,6 +14,7 @@ module.exports = {
   },
   testPathIgnorePatterns: [],
   // setupFiles: ['<rootDir>/test/unit/setup'],
+  collectCoverage: true,
   coverageDirectory: '<rootDir>/test/unit/coverage',
   collectCoverageFrom: [
     '*.{js}',

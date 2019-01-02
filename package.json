@@ -4,7 +4,8 @@
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "scripts": {
     "linter": "eslint --ignore-path .gitignore .",
-    "test": "jest --config=./test/unit/jest.conf.js"
+    "test": "jest --config=./test/unit/jest.conf.js",
+    "test-and-send-coverage": "jest --config=./test/unit/jest.conf.js && cat ./test/unit/coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "homepage": "https://github.com/timmahrt/praatIO.js#readme",
   "devDependencies": {
+    "coveralls": "^3.0.2",
     "eslint": "^5.11.1",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.14.0",

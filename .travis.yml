@@ -1,6 +1,18 @@
+sudo: false
 language: node_js
-
 node_js:
   - 6
   - 10
   - node
+branches:
+  only:
+  - master
+cache:
+  directories:
+  - node_modules
+before_install:
+- npm update
+install:
+- npm install
+script:
+- npm test-and-send-coverage
