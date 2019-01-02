@@ -6,5 +6,5 @@ test('converting from a textgrid file to an object and back yields the same data
   let tg = parseTextgrid(textgridText);
   let outputTextgridText = serializeTextgrid(tg);
 
-  expect(textgridText).toBe(outputTextgridText);
+  expect(outputTextgridText).toBe(textgridText);
 });
