@@ -4,8 +4,8 @@
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "scripts": {
     "linter": "eslint --ignore-path .gitignore .",
-    "test-nc": "jest --config=./test/unit/jest.conf.js",
-    "test": "jest --config=./test/unit/jest.conf.js && cat ./test/unit/coverage/lcov.info | coveralls"
+    "test": "jest --config=./test/unit/jest.conf.js",
+    "coveralls": "cat ./test/unit/coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
