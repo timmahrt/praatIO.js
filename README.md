@@ -8,12 +8,20 @@
 
 A library for reading and writing textgrid files in javascript.
 
+Major breaking api changes came with 1.0.1 and 1.0.2 along
+with lots of bugfixes.  Ver 1.0 is going to be the alpha version.
+Once it stabilizes (including larger test coverage),
+I'll up the version to 2.0 and use semantic
+versioning from there on out.
+
+Sorry for any inconvenience.
 
 ## Major revisions
 
 Ver 1.0 (December 31, 2018)
 - Bugfixes and style refactoring (ES6)
 - Passing linter and building
+
 
 Ver 0.0 (June 06, 2015)
 - Support for reading in a longform textgrid as JSON
@@ -39,4 +47,13 @@ import { parseTextgrid, serializeTextgrid, serializeTextgridToCsv } from 'praati
 
 TODO: Make examples
 
+If you read a .TextGrid file into memory,
+`parseTextgrid` can be used to convert that into a Textgrid instance.
 
+To go the opposite direction, use `serializeTextgrid` which
+returns the contents of a `.TextGrid` file as a string,
+which can be written directly to a file.
+`serializeTextgridToCsv` works similarly, but returns the textgrid
+as a comma separate list of values.  A textgrid cannot be fully
+represented in a csv file, so you'll have to choose the tier
+to 'pivot' from.
