@@ -7,6 +7,14 @@ const INTERVAL_TIER = 'IntervalTier';
 const POINT_TIER = 'TextTier';
 const MIN_INTERVAL_LENGTH = 0.00000001; // Arbitrary threshold
 
+function isClose (a, b, relTol = 1e-14, abs_tol = 0.0) {
+  return Math.abs(a - b) <= Math.max(relTol * Math.max(Math.abs(a), Math.abs(b)), abs_tol)
+}
+
+function sortCompareEntriesByTime (x, y) {
+  return x[0] - y[0];
+}
+
 class TextgridTier {
   constructor (name, entryList, minT, maxT) {
     this.name = name;
@@ -68,9 +76,7 @@ class TextgridTier {
   }
 
   sort () {
-    this.entryList.sort(function (x, y) {
-      return x[0] - y[0];
-    });
+    this.entryList.sort(sortCompareEntriesByTime);
   }
 
   union (tier) {
@@ -91,8 +97,8 @@ class PointTier extends TextgridTier {
     if (minT !== null) timeList.push(parseFloat(minT));
     if (maxT !== null) timeList.push(parseFloat(maxT));
 
-    minT = Math.min(...timeList);
-    maxT = Math.max(...timeList);
+    if (timeList.length > 0) minT = Math.min(...timeList);
+    if (timeList.length > 0) maxT = Math.max(...timeList);
 
     // Finish intialization
     super(name, entryList, minT, maxT);
@@ -133,13 +139,12 @@ class IntervalTier extends TextgridTier {
     // Determine the min and max timestamps
     let startTimeList = entryList.map(entry => entry[0]);
     let endTimeList = entryList.map(entry => entry[1]);
-    let timeList = startTimeList.concat(endTimeList);
 
-    if (minT !== null) timeList.push(parseFloat(minT));
-    if (maxT !== null) timeList.push(parseFloat(maxT));
+    if (minT !== null) startTimeList.push(parseFloat(minT));
+    if (maxT !== null) endTimeList.push(parseFloat(maxT));
 
-    minT = Math.min(...startTimeList);
-    maxT = Math.max(...endTimeList);
+    if (startTimeList.length > 0) minT = Math.min(...startTimeList);
+    if (endTimeList.length > 0) maxT = Math.max(...endTimeList);
 
     // Finish initialization
     super(name, entryList, minT, maxT);
@@ -317,12 +322,14 @@ class Textgrid {
   renameTier (oldName, newName) {
     let oldTier = this.tierDict[oldName];
     let tierIndex = this.tierNameList.indexOf(oldName);
+    let newTier = oldTier.newCopy({ name: newName });
+
     this.removeTier(oldName);
-    this.addTier(oldTier, tierIndex);
+    this.addTier(newTier, tierIndex);
   }
 
   removeTier (name) {
-    this.tierNameList.splice(this.tierNameList.index(name), 1);
+    this.tierNameList.splice(this.tierNameList.indexOf(name), 1);
     delete this.tierDict[name];
   }
 
