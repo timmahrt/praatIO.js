@@ -1,4 +1,5 @@
-import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER, MIN_INTERVAL_LENGTH } from './textgrid.js'
+import iconvlite from 'iconv-lite';
+import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER, MIN_INTERVAL_LENGTH } from './textgrid.js';
 
 /**
 Python-like split from
@@ -439,12 +440,19 @@ function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
   return outputTxt;
 }
 
-/** Creates an instance of a Textgrid from the contents of a .Textgrid file. */
+/**
+Creates an instance of a Textgrid from the contents of a .Textgrid file.
+
+Contents may either be raw text or a Buffer
+*/
 function parseTextgrid (text) {
+  text = decodeBuffer(text);
   text = text.replace(/\r\n/g, '\n');
 
   let textgrid;
-  if (text.indexOf('ooTextFile short') !== -1 || text.indexOf('item') === -1) {
+  let caseA = text.indexOf('ooTextFile short') > -1; // 'short' in header
+  let caseB = text.indexOf('item [') === -1; // 'item' keyword not in file
+  if (caseA || caseB) {
     textgrid = parseShortTextgrid(text);
   } else {
     textgrid = parseNormalTextgrid(text);
@@ -453,4 +461,21 @@ function parseTextgrid (text) {
   return textgrid;
 }
 
-export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv };
+/**
+Decodes a buffer from utf16/8 to text.
+
+If not given a buffer, it returns the input.
+*/
+function decodeBuffer (buffer) {
+  let returnText = buffer
+  if (Buffer.isBuffer(buffer)) {
+    let decodedText = iconvlite.decode(buffer, 'utf16');
+    if (decodedText.indexOf('ooTextFile') === -1) {
+      decodedText = iconvlite.decode(buffer, 'utf8');
+    }
+    returnText = decodedText;
+  }
+  return returnText;
+}
+
+export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer };
