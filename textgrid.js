@@ -15,8 +15,21 @@ function sortCompareEntriesByTime (x, y) {
   return x[0] - y[0];
 }
 
+function TierCreationException (errStr) {
+  this.errStr = errStr;
+  this.message = "Couldn't create tier: ";
+  this.toString = function () {
+    return this.message + this.errStr;
+  };
+}
+
 class TextgridTier {
   constructor (name, entryList, minT, maxT) {
+    // Don't allow a timeless tier to exist
+    if (minT === null || maxT === null) {
+      throw new TierCreationException('All textgrid tiers must have a min and max duration');
+    }
+
     this.name = name;
     this.entryList = entryList;
     this.minTimestamp = minT;
@@ -387,4 +400,4 @@ class Textgrid {
   }
 }
 
-export { Textgrid, IntervalTier, PointTier, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };
+export { Textgrid, IntervalTier, PointTier, TierCreationException, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };
