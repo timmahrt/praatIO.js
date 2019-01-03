@@ -23,6 +23,15 @@ function TierCreationException (errStr) {
   };
 }
 
+function TextgridCollisionException (name, entry, matchList) {
+  this.name = name;
+  this.entry = entry;
+  this.matchList = entry;
+  this.toString = function () {
+    return `Attempted to insert interval ${entry} into tier ${name} of textgrid but overlapping entries ${matchList} already exist`;
+  };
+}
+
 class TextgridTier {
   constructor (name, entryList, minT, maxT) {
     // Don't allow a timeless tier to exist
@@ -141,6 +150,41 @@ class PointTier extends TextgridTier {
     return !!isEqual;
   }
 
+  insertEntry (entry, warnFlag = true, collisionCode = null) {
+    let startTime = entry[0];
+
+    let match = null;
+    for (let i = 0; i < this.entryList.length; i++) {
+      if (isClose(startTime, this.entryList[i][0])) {
+        match = this.entryList[i];
+        break;
+      }
+    }
+
+    if (!match) {
+      this.entryList.push(entry);
+    }
+    else if (collisionCode.toLower() === 'replace') {
+      this.deleteEntry(match);
+      this.entryList.push(entry);
+    }
+    else if (collisionCode.toLower() === 'merge') {
+      let newEntry = [match[0], [match[1], entry[1]].join('-')];
+      this.deleteEntry(match)
+      this.entryList.push(newEntry)
+    }
+    else {
+      throw TextgridCollisionException(this.name, entry, match);
+    }
+
+    this.sort();
+
+    if (match && warnFlag === true) {
+      let msg = `Collision warning for ${entry} with item ${match} of tier ${this.name}`;
+      console.log(msg);
+    }
+  }
+
   crop (cropStart, cropEnd, mode, rebaseToZero = true) {
     /*
     Creates a new tier containing all entires inside the new interval
@@ -193,6 +237,52 @@ class IntervalTier extends TextgridTier {
     isEqual &= isClose(entryA[1], entryB[1]);
     isEqual &= entryA[2] === entryB[2];
     return !!isEqual
+  }
+
+  insertEntry (entry, warnFlag = true, collisionCode = null) {
+    let startTime = entry[0];
+    let endTime = entry[1];
+
+    let matchList = this.crop(startTime, endTime, 'lax', false).entryList;
+
+    if (matchList.length === 0) {
+      this.entryList.push(entry);
+    }
+    else if (collisionCode.toLower() === 'replace') {
+      for (let i = 0; i < this.matchList.length; i++) {
+        this.deleteEntry(this.matchList[i]);
+      }
+      this.entryList.push(entry);
+    }
+    else if (collisionCode.toLower() === 'merge') {
+      for (let i = 0; i < this.matchList.length; i++) {
+        this.deleteEntry(this.matchList[i]);
+      }
+      matchList.push(entry);
+      matchList.sort(sortCompareEntriesByTime);
+
+      let startTimes = matchList.map(entry => entry[0]);
+      let endTimes = matchList.map(entry => entry[1]);
+      let labels = matchList.map(entry => entry[2]);
+
+      let newEntry = [
+        Math.min(...startTimes),
+        Math.max(...endTimes),
+        labels.join('-')
+      ]
+
+      this.entryList.push(newEntry);
+    }
+    else {
+      throw TextgridCollisionException(this.name, entry, matchList);
+    }
+
+    this.sort();
+
+    if (matchList && warnFlag === true) {
+      let msg = `Collision warning for ${entry} with items ${matchList} of tier ${this.name}`;
+      console.log(msg);
+    }
   }
 
   crop (cropStart, cropEnd, mode, rebaseToZero) {
@@ -400,4 +490,4 @@ class Textgrid {
   }
 }
 
-export { Textgrid, IntervalTier, PointTier, TierCreationException, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };
+export { Textgrid, IntervalTier, PointTier, TierCreationException, TextgridCollisionException, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };
