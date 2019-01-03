@@ -47,6 +47,22 @@ class TextgridTier {
     this.entryList.splice(i, 1);
   }
 
+  equals (tier) {
+    let isEqual = true;
+    isEqual &= this.name === tier.name;
+    isEqual &= isClose(this.minTimestamp, tier.minTimestamp);
+    isEqual &= isClose(this.maxTimestamp, tier.maxTimestamp);
+    isEqual &= this.entryList.length === tier.entryList.length;
+
+    if (isEqual) {
+      for (let i = 0; i < this.entryList.length; i++) {
+        isEqual &= this.entrysAreEqual(this.entryList[i], tier.entryList[i]);
+      }
+    }
+
+    return !!isEqual;
+  }
+
   find (matchLabel, substrMatchFlag, usingRE) {
     let returnList = [];
     for (let i = 0; i < this.entryList.length; i++) {
@@ -105,6 +121,13 @@ class PointTier extends TextgridTier {
     this.tierType = POINT_TIER;
   }
 
+  entrysAreEqual (entryA, entryB) {
+    let isEqual = true;
+    isEqual &= isClose(entryA[0], entryB[0]);
+    isEqual &= entryA[1] === entryB[1];
+    return !!isEqual;
+  }
+
   crop (cropStart, cropEnd, mode, rebaseToZero = true) {
     /*
     Creates a new tier containing all entires inside the new interval
@@ -149,6 +172,14 @@ class IntervalTier extends TextgridTier {
     // Finish initialization
     super(name, entryList, minT, maxT);
     this.tierType = INTERVAL_TIER;
+  }
+
+  entrysAreEqual (entryA, entryB) {
+    let isEqual = true;
+    isEqual &= isClose(entryA[0], entryB[0]);
+    isEqual &= isClose(entryA[1], entryB[1]);
+    isEqual &= entryA[2] === entryB[2];
+    return !!isEqual
   }
 
   crop (cropStart, cropEnd, mode, rebaseToZero) {
@@ -249,6 +280,22 @@ class Textgrid {
 
     this.minTimestamp = null;
     this.maxTimestamp = null;
+  }
+
+  equals (tg) {
+    let isEqual = true;
+    isEqual &= isClose(this.minTimestamp, tg.minTimestamp);
+    isEqual &= isClose(this.maxTimestamp, tg.maxTimestamp);
+    for (let i = 0; i < this.tierNameList; i++) {
+      isEqual &= this.tierNameList[i] === tg.tierNameList[i];
+    }
+
+    for (let i = 0; i < this.tierNameList.length; i++) {
+      let tierName = this.tierNameList[i];
+      isEqual &= this.tierDict[tierName].equals(tg.tierDict[tierName]);
+    }
+
+    return !!isEqual;
   }
 
   addTier (tier, tierIndex = null) {
