@@ -34,24 +34,24 @@ class TierCreationException extends Error {
 };
 
 class TextgridCollisionException extends Error {
-  constructor (name, entry, matchList, ...args) {
+  constructor (tierName, entry, matchList, ...args) {
     super(...args);
-    this.name = name;
+    this.tierName = tierName;
     this.entry = entry;
     this.matchList = matchList;
-    this.message = `Attempted to insert interval ${entry} into tier ${name} of textgrid but overlapping entries ${matchList} already exist.`;
+    this.message = `Attempted to insert interval [${entry}] into tier '${tierName}' of textgrid but overlapping entries [${matchList}] already exist.`;
   }
 };
 
 class OvershootModificationException extends Error {
-  constructor (name, oldEntry, newEntry, min, max, ...args) {
+  constructor (tierName, oldEntry, newEntry, min, max, ...args) {
     super(...args);
-    this.name = name;
+    this.tierName = tierName;
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
     this.min = min;
     this.max = max;
-    this.message = `Attempted to chance ${oldEntry} to ${newEntry} in tier ${name} however, this exceeds the bounds (${min}, ${max}).`;
+    this.message = `Attempted to chance ${oldEntry} to ${newEntry} in tier ${tierName} however, this exceeds the bounds (${min}, ${max}).`;
   }
 };
 
@@ -245,11 +245,11 @@ class PointTier extends TextgridTier {
     if (!match) {
       this.entryList.push(entry);
     }
-    else if (collisionCode.toLower() === 'replace') {
+    else if (collisionCode && collisionCode.toLowerCase() === 'replace') {
       this.deleteEntry(match);
       this.entryList.push(entry);
     }
-    else if (collisionCode.toLower() === 'merge') {
+    else if (collisionCode && collisionCode.toLowerCase() === 'merge') {
       let newEntry = [match[0], [match[1], entry[1]].join('-')];
       this.deleteEntry(match)
       this.entryList.push(newEntry)
@@ -261,7 +261,7 @@ class PointTier extends TextgridTier {
     this.sort();
 
     if (match && warnFlag === true) {
-      let msg = `Collision warning for ${entry} with item ${match} of tier ${this.name}`;
+      let msg = `Collision warning for [${entry}] with items [${match}] of tier '${this.name}'`;
       console.log(msg);
     }
   }
@@ -347,7 +347,7 @@ class IntervalTier extends TextgridTier {
     return !!isEqual
   }
 
-  insertEntry (entry, warnFlag = true, collisionCode = null) {
+  insertEntry (entry, warnFlag = false, collisionCode = null) {
     let startTime = entry[0];
     let endTime = entry[1];
 
@@ -356,15 +356,15 @@ class IntervalTier extends TextgridTier {
     if (matchList.length === 0) {
       this.entryList.push(entry);
     }
-    else if (collisionCode.toLower() === 'replace') {
-      for (let i = 0; i < this.matchList.length; i++) {
-        this.deleteEntry(this.matchList[i]);
+    else if (collisionCode && collisionCode.toLowerCase() === 'replace') {
+      for (let i = 0; i < matchList.length; i++) {
+        this.deleteEntry(matchList[i]);
       }
       this.entryList.push(entry);
     }
-    else if (collisionCode.toLower() === 'merge') {
-      for (let i = 0; i < this.matchList.length; i++) {
-        this.deleteEntry(this.matchList[i]);
+    else if (collisionCode && collisionCode.toLowerCase() === 'merge') {
+      for (let i = 0; i < matchList.length; i++) {
+        this.deleteEntry(matchList[i]);
       }
       matchList.push(entry);
       matchList.sort(sortCompareEntriesByTime);
@@ -388,7 +388,7 @@ class IntervalTier extends TextgridTier {
     this.sort();
 
     if (matchList && warnFlag === true) {
-      let msg = `Collision warning for ${entry} with items ${matchList} of tier ${this.name}`;
+      let msg = `Collision warning for [${entry}] with items [${matchList}] of tier '${this.name}'`;
       console.log(msg);
     }
   }
