@@ -15,22 +15,54 @@ function sortCompareEntriesByTime (x, y) {
   return x[0] - y[0];
 }
 
-function TierCreationException (errStr) {
-  this.errStr = errStr;
-  this.message = "Couldn't create tier: ";
-  this.toString = function () {
-    return this.message + this.errStr;
-  };
-}
+class NonMatchingTiersException extends Error {};
 
-function TextgridCollisionException (name, entry, matchList) {
-  this.name = name;
-  this.entry = entry;
-  this.matchList = entry;
-  this.toString = function () {
-    return `Attempted to insert interval ${entry} into tier ${name} of textgrid but overlapping entries ${matchList} already exist`;
-  };
-}
+class TierExistsException extends Error {
+  constructor (tierName, ...args) {
+    super(...args);
+    this.tierName = tierName;
+    this.message = `Tier name ${tierName} already exists in textgrid`;
+  }
+};
+
+class TierCreationException extends Error {
+  constructor (errStr, ...args) {
+    super(...args);
+    this.errStr = errStr;
+    this.message = "Couldn't create tier: " + errStr;
+  }
+};
+
+class TextgridCollisionException extends Error {
+  constructor (name, entry, matchList, ...args) {
+    super(...args);
+    this.name = name;
+    this.entry = entry;
+    this.matchList = matchList;
+    this.message = `Attempted to insert interval ${entry} into tier ${name} of textgrid but overlapping entries ${matchList} already exist.`;
+  }
+};
+
+class OvershootModificationException extends Error {
+  constructor (name, oldEntry, newEntry, min, max, ...args) {
+    super(...args);
+    this.name = name;
+    this.oldEntry = oldEntry;
+    this.newEntry = newEntry;
+    this.min = min;
+    this.max = max;
+    this.message = `Attempted to chance ${oldEntry} to ${newEntry} in tier ${name} however, this exceeds the bounds (${min}, ${max}).`;
+  }
+};
+
+class IndexException extends Error {
+  constructor (indexVal, listLength, ...args) {
+    super(...args);
+    this.indexVal = indexVal;
+    this.listLength = listLength;
+    this.message = `Attempted to index a list of length ${listLength} with index ${indexVal}.`;
+  }
+};
 
 class TextgridTier {
   constructor (name, entryList, minT, maxT) {
@@ -185,7 +217,7 @@ class PointTier extends TextgridTier {
       this.entryList.push(newEntry)
     }
     else {
-      throw TextgridCollisionException(this.name, entry, match);
+      throw new TextgridCollisionException(this.name, entry, match);
     }
 
     this.sort();
@@ -286,7 +318,7 @@ class IntervalTier extends TextgridTier {
       this.entryList.push(newEntry);
     }
     else {
-      throw TextgridCollisionException(this.name, entry, matchList);
+      throw new TextgridCollisionException(this.name, entry, matchList);
     }
 
     this.sort();
@@ -416,7 +448,7 @@ class Textgrid {
 
   addTier (tier, tierIndex = null) {
     if (Object.keys(this.tierDict).includes(tier.name)) {
-      throw new Error('Tier name already exists in textgrid');
+      throw new TierExistsException(tier.name);
     }
 
     if (tierIndex === null) this.tierNameList.push(tier.name);
