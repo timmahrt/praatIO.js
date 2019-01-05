@@ -26,7 +26,7 @@ function tiersAreEqual (tierA, tierB) {
   expect(tierA.entryList.length).toEqual(tierB.entryList.length);
   expect(tierA.entryList.length).not.toBe(0);
 
-  for (let i = 0; i < tierA.entryList; i++) {
+  for (let i = 0; i < tierA.entryList.length; i++) {
     entriesAreEqual(tierA.entryList[i], tierB.entryList[i], tierA.tierType);
   }
 }
@@ -40,7 +40,7 @@ function textgridsAreEqual (tgA, tgB) {
   expect(tgA.tierNameList).toEqual(tgB.tierNameList);
   expect(tgA.tierNameList.length).not.toBe(0);
 
-  for (let i = 0; i < tgA.tierNameList; i++) {
+  for (let i = 0; i < tgA.tierNameList.length; i++) {
     let tierName = tgA.tierNameList[i];
     tiersAreEqual(tgA.tierDict[tierName], tgB.tierDict[tierName]);
   }
