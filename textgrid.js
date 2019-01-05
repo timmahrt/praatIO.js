@@ -78,7 +78,7 @@ class TextgridTier {
 
     if (isEqual) {
       for (let i = 0; i < this.entryList.length; i++) {
-        isEqual &= this.entrysAreEqual(this.entryList[i], tier.entryList[i]);
+        isEqual &= this.entriesAreEqual(this.entryList[i], tier.entryList[i]);
       }
     }
 
@@ -113,11 +113,11 @@ class TextgridTier {
     maxTimestamp = null
   } = {}) {
     if (name === null) name = this.name;
-    if (entryList === null) entryList = this.entryList;
+    if (entryList === null) entryList = this.entryList.map(entry => entry.slice());
     if (minTimestamp === null) minTimestamp = this.minTimestamp;
     if (maxTimestamp === null) maxTimestamp = this.maxTimestamp;
 
-    return this.constructor(name, entryList, minTimestamp, maxTimestamp);
+    return new this.constructor(name, entryList, minTimestamp, maxTimestamp);
   }
 
   sort () {
@@ -130,6 +130,9 @@ class TextgridTier {
     for (let i = 0; i < tier.entryList.length; i++) {
       retTier.insertEntry(tier.entryList[i], false, 'merge');
     }
+
+    retTier.sort();
+    return retTier;
   }
 }
 
@@ -151,7 +154,7 @@ class PointTier extends TextgridTier {
     this.labelIndex = 1;
   }
 
-  entrysAreEqual (entryA, entryB) {
+  entriesAreEqual (entryA, entryB) {
     let isEqual = true;
     isEqual &= isClose(entryA[0], entryB[0]);
     isEqual &= entryA[1] === entryB[1];
@@ -240,7 +243,7 @@ class IntervalTier extends TextgridTier {
     this.labelIndex = 2;
   }
 
-  entrysAreEqual (entryA, entryB) {
+  entriesAreEqual (entryA, entryB) {
     let isEqual = true;
     isEqual &= isClose(entryA[0], entryB[0]);
     isEqual &= isClose(entryA[1], entryB[1]);
@@ -398,7 +401,8 @@ class Textgrid {
     let isEqual = true;
     isEqual &= isClose(this.minTimestamp, tg.minTimestamp);
     isEqual &= isClose(this.maxTimestamp, tg.maxTimestamp);
-    for (let i = 0; i < this.tierNameList; i++) {
+    isEqual &= this.tierNameList.length === tg.tierNameList.length;
+    for (let i = 0; i < this.tierNameList.length; i++) {
       isEqual &= this.tierNameList[i] === tg.tierNameList[i];
     }
 
@@ -466,10 +470,9 @@ class Textgrid {
 
   newCopy () {
     let textgrid = new Textgrid();
-    for (let i = 0; i < this.tierNameList; i++) {
+    for (let i = 0; i < this.tierNameList.length; i++) {
       let tierName = this.tierNameList[i];
-      textgrid.tierNameList.push(tierName);
-      textgrid.tierDict[tierName] = this.tierDict[tierName];
+      textgrid.addTier(this.tierDict[tierName].newCopy());
     }
 
     textgrid.minTimestamp = this.minTimestamp;
