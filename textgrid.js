@@ -80,25 +80,37 @@ class TextgridTier {
   }
 
   appendTier (tier) {
+    if (this.tierType !== tier.tierType) {
+      throw new NonMatchingTiersException('Tier types must match when appending tiers.');
+    }
     let minTime = this.minTimestamp;
-    if (tier.minTimestamp < minTime) minTime = tier.minTimestamp;
-
     let maxTime = this.maxTimestamp + tier.maxTimestamp;
 
     let appendTier = tier.editTimestamps(this.maxTimestamp, true);
+    let entryList = this.entryList.concat(appendTier.entryList);
 
-    if (this.tierType !== tier.tierType) {
-      throw new Error('Tier types must match when appending tiers.');
-    }
-
-    let entryList = this.entryList + appendTier.entryList;
-
-    return this.newCopy(this.name, entryList, minTime, maxTime);
+    return this.newCopy({
+      name: this.name,
+      entryList: entryList,
+      minTimestamp: minTime,
+      maxTimestamp: maxTime
+    });
   }
 
   deleteEntry (entry) {
-    let i = this.entryList.indexOf(entry);
-    this.entryList.splice(i, 1);
+    let deleteI = -1;
+    for (let i = 0; i < this.entryList.length; i++) {
+      if (this.entriesAreEqual(this.entryList[i], entry)) {
+        deleteI = i;
+        break;
+      }
+    }
+
+    if (deleteI === -1) {
+      throw new IndexException(deleteI, this.entryList.length);
+    }
+
+    this.entryList.splice(deleteI, 1);
   }
 
   equals (tier) {
