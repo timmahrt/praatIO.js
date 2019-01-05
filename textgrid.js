@@ -85,16 +85,23 @@ class TextgridTier {
     return !!isEqual;
   }
 
-  find (matchLabel, substrMatchFlag, usingRE) {
+  /** Returns the indexes of the entries that match the search label */
+  find (searchLabel, mode = null) {
+    let cmprFunc;
+    if (mode === 're') {
+      cmprFunc = (text, reStr) => { return RegExp(reStr).test(text) };
+    }
+    else if (mode === 'substr') {
+      cmprFunc = (text, subStr) => { return text.includes(subStr) };
+    }
+    else {
+      cmprFunc = (text, searchText) => { return text === searchText };
+    }
+
+    // Run the search
     let returnList = [];
     for (let i = 0; i < this.entryList.length; i++) {
-      if (usingRE === true) {
-        if (this.entryList[i].match(matchLabel)) returnList.push(i);
-      } else if (substrMatchFlag === false) {
-        if (this.entryList[i] === matchLabel) returnList.push(i);
-      } else {
-        if (this.entryList[i].includes(matchLabel)) returnList.push(i);
-      }
+      if (cmprFunc(this.entryList[i][this.labelIndex], searchLabel)) returnList.push(i);
     }
     return returnList;
   }
@@ -141,6 +148,7 @@ class PointTier extends TextgridTier {
     // Finish intialization
     super(name, entryList, minT, maxT);
     this.tierType = POINT_TIER;
+    this.labelIndex = 1;
   }
 
   entrysAreEqual (entryA, entryB) {
@@ -229,6 +237,7 @@ class IntervalTier extends TextgridTier {
     // Finish initialization
     super(name, entryList, minT, maxT);
     this.tierType = INTERVAL_TIER;
+    this.labelIndex = 2;
   }
 
   entrysAreEqual (entryA, entryB) {
