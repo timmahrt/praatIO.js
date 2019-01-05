@@ -198,6 +198,32 @@ class PointTier extends TextgridTier {
     this.labelIndex = 1;
   }
 
+  editTimestamps (offset, allowOvershoot = false) {
+    let newEntryList = []
+    for (let i = 0; i < this.entryList.length; i++) {
+      let entry = this.entryList[i];
+      let newTime = entry[0] + offset;
+      let newEntry = [newTime, entry[1]];
+
+      if (allowOvershoot === false) {
+        if (newTime < this.minTimestamp || newTime > this.maxTimestamp) {
+          throw new OvershootModificationException(entry, newEntry, this.name, this.minTimestamp, this.maxTimestamp);
+        }
+      }
+
+      newEntryList.push(newEntry);
+    }
+
+    let newTimeList = newEntryList.map(entry => entry[0]);
+    let newMin = Math.min(...newTimeList);
+    let newMax = Math.max(...newTimeList);
+
+    if (this.minTimestamp < newMin) newMin = this.minTimestamp;
+    if (this.maxTimestamp > newMax) newMax = this.maxTimestamp;
+
+    return new IntervalTier(this.name, newEntryList, newMin, newMax);
+  }
+
   entriesAreEqual (entryA, entryB) {
     let isEqual = true;
     isEqual &= isClose(entryA[0], entryB[0]);
@@ -285,6 +311,32 @@ class IntervalTier extends TextgridTier {
     super(name, entryList, minT, maxT);
     this.tierType = INTERVAL_TIER;
     this.labelIndex = 2;
+  }
+
+  editTimestamps (offset, allowOvershoot = false) {
+    let newEntryList = []
+    for (let i = 0; i < this.entryList.length; i++) {
+      let entry = this.entryList[i];
+      let newStart = entry[0] + offset;
+      let newStop = entry[1] + offset;
+      let newEntry = [newStart, newStop, entry[2]];
+
+      if (allowOvershoot === false) {
+        if (newStart < this.minTimestamp || newStop > this.maxTimestamp) {
+          throw new OvershootModificationException(entry, newEntry, this.name, this.minTimestamp, this.maxTimestamp);
+        }
+      }
+
+      newEntryList.push(newEntry);
+    }
+
+    let newMin = Math.min(...newEntryList.map(entry => entry[0]));
+    let newMax = Math.max(...newEntryList.map(entry => entry[1]));
+
+    if (this.minTimestamp < newMin) newMin = this.minTimestamp;
+    if (this.maxTimestamp > newMax) newMax = this.maxTimestamp;
+
+    return new IntervalTier(this.name, newEntryList, newMin, newMax);
   }
 
   entriesAreEqual (entryA, entryB) {
