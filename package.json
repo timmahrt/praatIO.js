@@ -32,7 +32,8 @@
     "eslint-plugin-node": "^8.0.0",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
-    "jest": "^23.6.0"
+    "jest": "^23.6.0",
+    "webpack-dev-server": ">=3.1.11"
   },
   "dependencies": {
     "babel-jest": "^23.6.0",

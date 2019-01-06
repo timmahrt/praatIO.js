@@ -1,4 +1,4 @@
-import { Textgrid, IntervalTier, PointTier } from '../../../textgrid.js';
+import { Textgrid, IntervalTier, PointTier, INTERVAL_TIER, POINT_TIER } from '../../../textgrid.js';
 
 function getPrefabTextgrid (tierList = null) {
   let tg = new Textgrid();
@@ -36,6 +36,25 @@ function getPrefabTextgrid (tierList = null) {
   }
 
   return tg;
+}
+
+function testTier (tier, minTime, maxTime, entryList) {
+  expect(tier.entryList.length).toEqual(entryList.length);
+  for (let i = 0; i < tier.entryList.length; i++) {
+
+    if (tier.tierType === INTERVAL_TIER) {
+      expect(tier.entryList[i][0]).toBeCloseTo(entryList[i][0]);
+      expect(tier.entryList[i][1]).toBeCloseTo(entryList[i][1]);
+      expect(tier.entryList[i][2]).toEqual(entryList[i][2]);
+    }
+    else if (tier.tierType === POINT_TIER) {
+      expect(tier.entryList[i][0]).toBeCloseTo(entryList[i][0]);
+      expect(tier.entryList[i][1]).toBeCloseTo(entryList[i][1]);
+      expect(tier.entryList[i][2]).toEqual(entryList[i][2]);
+    }
+  }
+  expect(tier.minTimestamp).toEqual(minTime);
+  expect(tier.maxTimestamp).toBeCloseTo(maxTime);
 }
 
 test('can build PointTiers', () => {
@@ -559,4 +578,194 @@ test('intervalTier.insertEntry can merge into existing points with flag', () => 
   expect(intervalTier.entryList).not.toContain(newPoint);
   expect(intervalTier.entryList).not.toContain(oldPoint1);
   expect(intervalTier.entryList).not.toContain(oldPoint2);
+})
+
+test('pointTier.crop() rebaseToZero sets the the min time to zero', () => {
+  let tg = getPrefabTextgrid();
+  let pointTier = tg.tierDict['pitch vals'];
+  let origEntryList = pointTier.entryList.map(entry => entry.slice());
+
+  let oldStart = 0.9;
+  let oldStop = 1.79;
+
+  // This is actually expanding the tier, not cropping it
+  let newStart = 0.8;
+  let newStop = 2.0;
+
+  expect(pointTier.entryList.length).toEqual(4);
+  expect(origEntryList).toEqual(pointTier.entryList);
+  expect(pointTier.minTimestamp).toEqual(oldStart);
+  expect(pointTier.maxTimestamp).toEqual(oldStop);
+
+  let croppedTier = pointTier.crop(newStart, newStop, '', true)
+  let newEntryList = [
+    [0.10, '120'],
+    [0.31, '100'],
+    [0.61, '110'],
+    [0.99, '95']
+  ];
+
+  expect(croppedTier.entryList.length).toEqual(4);
+  for (let i = 0; i < newEntryList.length; i++) {
+    expect(croppedTier.entryList[i][0]).toBeCloseTo(newEntryList[i][0]);
+    expect(croppedTier.entryList[i][1]).toEqual(newEntryList[i][1]);
+  }
+  expect(croppedTier.minTimestamp).toEqual(0);
+  expect(croppedTier.maxTimestamp).toBeCloseTo(newStop - newStart);
+})
+
+test('intervalTier.crop() rebaseToZero sets the the min time to zero', () => {
+  let tg = getPrefabTextgrid();
+  let intervalTier = tg.tierDict['speaker 1'];
+  let origEntryList = intervalTier.entryList.map(entry => entry.slice());
+
+  let oldStart = 0.73;
+  let oldStop = 1.91;
+
+  // This is actually expanding the tier, not cropping it
+  let newStart = 0.6;
+  let newStop = 2.0;
+
+  expect(intervalTier.entryList.length).toEqual(4);
+  expect(origEntryList).toEqual(intervalTier.entryList);
+  expect(intervalTier.minTimestamp).toEqual(oldStart);
+  expect(intervalTier.maxTimestamp).toEqual(oldStop);
+
+  let croppedTier = intervalTier.crop(newStart, newStop, '', true)
+  let newEntryList = [
+    [0.13, 0.42, 'Ichiro'],
+    [0.42, 0.631, 'hit'],
+    [0.73, 0.94, 'a'],
+    [0.94, 1.31, 'homerun']
+  ];
+
+  testTier(croppedTier, 0, newStop - newStart, newEntryList);
+})
+
+test('intervalTier.crop() strict mode only keeps entries in the crop region', () => {
+  let intervals = [
+    [0.73, 1.02, 'Ichiro'],
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.54, 'great'],
+    [1.54, 1.91, 'homerun']
+  ];
+  let intervalTier = new IntervalTier('speaker 1', intervals);
+  let origEntryList = intervalTier.entryList.map(entry => entry.slice());
+
+  let oldStart = 0.73;
+  let oldStop = 1.91;
+
+  let newStart = 0.8;
+  let newStop = 1.6;
+
+  expect(intervalTier.entryList.length).toEqual(5);
+  expect(origEntryList).toEqual(intervalTier.entryList);
+  expect(intervalTier.minTimestamp).toEqual(oldStart);
+  expect(intervalTier.maxTimestamp).toEqual(oldStop);
+
+  let croppedTier = intervalTier.crop(newStart, newStop, 'strict', false)
+  let newEntryList = [
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.54, 'great']
+  ];
+
+  testTier(croppedTier, newStart, newStop, newEntryList);
+})
+
+test('intervalTier.crop() lax mode keeps entries that are spanning the crop boundaries', () => {
+  let intervals = [
+    [0.73, 1.02, 'Ichiro'],
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.54, 'great'],
+    [1.54, 1.91, 'homerun']
+  ];
+  let intervalTier = new IntervalTier('speaker 1', intervals);
+
+  let oldStart = 0.73;
+  let oldStop = 1.91;
+
+  let newStart = 1.1;
+  let newStop = 1.5;
+
+  expect(intervalTier.entryList.length).toEqual(5);
+  expect(intervalTier.minTimestamp).toEqual(oldStart);
+  expect(intervalTier.maxTimestamp).toEqual(oldStop);
+
+  let croppedTier = intervalTier.crop(newStart, newStop, 'lax', false)
+  let newEntryList = [
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.54, 'great']
+  ];
+
+  // min and max here are determined by the values in the entry
+  // list in this case, since they are more extreme than the crop
+  // region boundaries (due to how 'lax' works)
+  testTier(croppedTier, 1.02, 1.54, newEntryList);
+})
+
+test('intervalTier.crop() truncated mode cuts partially contained intervals', () => {
+  let intervals = [
+    [0.73, 1.02, 'Ichiro'],
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.54, 'great'],
+    [1.54, 1.91, 'homerun']
+  ];
+  let intervalTier = new IntervalTier('speaker 1', intervals);
+
+  let oldStart = 0.73;
+  let oldStop = 1.91;
+
+  let newStart = 1.1;
+  let newStop = 1.5;
+
+  expect(intervalTier.entryList.length).toEqual(5);
+  expect(intervalTier.minTimestamp).toEqual(oldStart);
+  expect(intervalTier.maxTimestamp).toEqual(oldStop);
+
+  let croppedTier = intervalTier.crop(newStart, newStop, 'truncated', false)
+  let newEntryList = [
+    [1.1, 1.231, 'hit'],
+    [1.33, 1.44, 'a'],
+    [1.44, 1.5, 'great']
+  ];
+
+  testTier(croppedTier, newStart, newStop, newEntryList);
+})
+
+test('textgrid.crop() rebaseToZero sets the the min time to zero', () => {
+  let tg = getPrefabTextgrid();
+
+  let newStart = 1.1;
+  let newStop = 1.5;
+
+  expect(tg.minTimestamp).toEqual(0.73);
+  expect(tg.maxTimestamp).toEqual(4.53);
+
+  let newTg = tg.crop(1.1, 1.5, 'strict', true);
+
+  expect(newTg.minTimestamp).toEqual(0);
+  expect(newTg.maxTimestamp).toBeCloseTo(newStop - newStart);
+})
+
+test('pointTier.editTimestamps() throws error on overshoot with flag', () => {
+  let tg = getPrefabTextgrid();
+  let tier = tg.tierDict['pitch vals'];
+
+  expect(() => {
+    tier.editTimestamps(100.0, false);
+  }).toThrowError("Attempted to change [0.9,120] to [100.9,120] in tier 'pitch vals' however, this exceeds the bounds (0.9,1.79).");
+})
+
+test('intervalTier.editTimestamps() throws error on overshoot with flag', () => {
+  let tg = getPrefabTextgrid();
+  let tier = tg.tierDict['speaker 1'];
+
+  expect(() => {
+    tier.editTimestamps(100.0, false);
+  }).toThrowError("Attempted to change [0.73,1.02,Ichiro] to [100.73,101.02,Ichiro] in tier 'speaker 1' however, this exceeds the bounds (0.73,1.91).");
 })

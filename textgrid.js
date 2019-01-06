@@ -51,7 +51,7 @@ class OvershootModificationException extends Error {
     this.newEntry = newEntry;
     this.min = min;
     this.max = max;
-    this.message = `Attempted to chance ${oldEntry} to ${newEntry} in tier ${tierName} however, this exceeds the bounds (${min}, ${max}).`;
+    this.message = `Attempted to change [${oldEntry}] to [${newEntry}] in tier '${tierName}' however, this exceeds the bounds (${min},${max}).`;
   }
 };
 
@@ -207,7 +207,7 @@ class PointTier extends TextgridTier {
 
       if (allowOvershoot === false) {
         if (newTime < this.minTimestamp || newTime > this.maxTimestamp) {
-          throw new OvershootModificationException(entry, newEntry, this.name, this.minTimestamp, this.maxTimestamp);
+          throw new OvershootModificationException(this.name, entry, newEntry, this.minTimestamp, this.maxTimestamp);
         }
       }
 
@@ -266,7 +266,7 @@ class PointTier extends TextgridTier {
     }
   }
 
-  crop (cropStart, cropEnd, mode, rebaseToZero = true) {
+  crop (cropStart, cropEnd, mode, rebaseToZero) {
     /*
     Creates a new tier containing all entires inside the new interval
 
@@ -323,7 +323,7 @@ class IntervalTier extends TextgridTier {
 
       if (allowOvershoot === false) {
         if (newStart < this.minTimestamp || newStop > this.maxTimestamp) {
-          throw new OvershootModificationException(entry, newEntry, this.name, this.minTimestamp, this.maxTimestamp);
+          throw new OvershootModificationException(this.name, entry, newEntry, this.minTimestamp, this.maxTimestamp);
         }
       }
 
