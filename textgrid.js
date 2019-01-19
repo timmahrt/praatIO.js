@@ -3,16 +3,12 @@ Written by Tim Mahrt
 March 25, 2015
 */
 
+import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, buildSearchTreeFromIntervalList } from './utils.js';
 const INTERVAL_TIER = 'IntervalTier';
 const POINT_TIER = 'TextTier';
 const MIN_INTERVAL_LENGTH = 0.00000001; // Arbitrary threshold
 
-function isClose (a, b, relTol = 1e-14, abs_tol = 0.0) {
-  return Math.abs(a - b) <= Math.max(relTol * Math.max(Math.abs(a), Math.abs(b)), abs_tol)
-}
 
-function sortCompareEntriesByTime (x, y) {
-  return x[0] - y[0];
 }
 
 class NonMatchingTiersException extends Error {};
