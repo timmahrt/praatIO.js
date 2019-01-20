@@ -507,6 +507,9 @@ class Textgrid {
   }
 
   addTier (tier, tierIndex = null) {
+    /*
+    Adds a tier to the textgrid.  Added to the end, unless an index is specified.
+    */
     if (Object.keys(this.tierDict).includes(tier.name)) {
       throw new TierExistsException(tier.name);
     }
@@ -561,6 +564,9 @@ class Textgrid {
   }
 
   newCopy () {
+    /*
+    Returns a deep copy of this textgrid
+    */
     let textgrid = new Textgrid();
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tierName = this.tierNameList[i];
@@ -574,6 +580,13 @@ class Textgrid {
   }
 
   renameTier (oldName, newName) {
+    /*
+    Renames one tier.  The new name must not exist in the textgrid already.
+    */
+    if (Object.keys(this.tierDict).includes(newName)) {
+      throw new TierExistsException(newName);
+    }
+
     let oldTier = this.tierDict[oldName];
     let tierIndex = this.tierNameList.indexOf(oldName);
     let newTier = oldTier.newCopy({ name: newName });
@@ -583,11 +596,17 @@ class Textgrid {
   }
 
   removeTier (name) {
+    /*
+    Removes the given tier from this textgrid.
+    */
     this.tierNameList.splice(this.tierNameList.indexOf(name), 1);
     delete this.tierDict[name];
   }
 
   replaceTier (name, newTier) {
+    /*
+    Replace the tier with the given name with a new tier
+    */
     let tierIndex = this.tierNameList.indexOf(name);
     this.removeTier(name);
     this.addTier(newTier, tierIndex);
