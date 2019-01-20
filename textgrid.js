@@ -3,7 +3,8 @@ Written by Tim Mahrt
 March 25, 2015
 */
 
-import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, buildSearchTreeFromIntervalList } from './utils.js';
+import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalInTime, findPointInTime } from './utils.js';
+
 const INTERVAL_TIER = 'IntervalTier';
 const POINT_TIER = 'TextTier';
 const MIN_INTERVAL_LENGTH = 0.00000001; // Arbitrary threshold
@@ -227,6 +228,30 @@ class PointTier extends TextgridTier {
     return !!isEqual;
   }
 
+  getValuesAtPoints (dataTupleList, fuzzyMatching) {
+    /*
+    Get the values that occur at points in the point tier
+
+    If fuzzyMatching is True, if there is not a feature value
+    at a point, the nearest feature value will be taken.
+
+    The procedure assumes that all data is ordered in time.
+    dataTupleList should be in the form
+    [(t1, v1a, v1b, ..), (t2, v2a, v2b, ..), ..]
+    */
+    let searchTree = entryListToTree(this.entryList);
+
+    let returnList = [];
+    for (let i = 0; i < dataTupleList.length; i++) {
+      let currentEntry = dataTupleList[i];
+      if (findPointInTime(currentEntry, searchTree, fuzzyMatching) !== null) {
+        returnList.push(currentEntry);
+      }
+    }
+
+    return returnList;
+  }
+
   insertEntry (entry, warnFlag = true, collisionCode = null) {
     let startTime = entry[0];
 
@@ -343,6 +368,25 @@ class IntervalTier extends TextgridTier {
     return !!isEqual
   }
 
+  getValuesInIntervals (dataTupleList) {
+    /*
+    Returns data from dataTupleList contained in labeled intervals
+
+    dataTupleList should be of the form:
+    [(time1, value1a, value1b,...), (time2, value2a, value2b...), ...]
+    */
+    let searchTree = entryListToTree(this.entryList);
+
+    let returnList = [];
+    for (let i = 0; i < dataTupleList.length; i++) {
+      let currentEntry = dataTupleList[i];
+      if (findIntervalInTime(currentEntry, searchTree) !== null) {
+        returnList.push(currentEntry);
+      }
+    }
+
+    return returnList;
+  }
   insertEntry (entry, warnFlag = false, collisionCode = null) {
     let startTime = entry[0];
     let endTime = entry[1];
