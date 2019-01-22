@@ -3,7 +3,7 @@ Written by Tim Mahrt
 March 25, 2015
 */
 
-import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalInTime, findPointInTime } from './utils.js';
+import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalAtTime, findPointAtTime } from './utils.js';
 
 const INTERVAL_TIER = 'IntervalTier';
 const POINT_TIER = 'TextTier';
@@ -328,7 +328,7 @@ class PointTier extends TextgridTier {
     let returnList = [];
     for (let i = 0; i < dataTupleList.length; i++) {
       let currentEntry = dataTupleList[i];
-      if (findPointInTime(currentEntry, searchTree, fuzzyMatching) !== null) {
+      if (findPointAtTime(currentEntry, searchTree, fuzzyMatching) !== null) {
         returnList.push(currentEntry);
       }
     }
@@ -565,7 +565,7 @@ class IntervalTier extends TextgridTier {
     let returnList = [];
     for (let i = 0; i < dataTupleList.length; i++) {
       let currentEntry = dataTupleList[i];
-      if (findIntervalInTime(currentEntry, searchTree) !== null) {
+      if (findIntervalAtTime(currentEntry, searchTree) !== null) {
         returnList.push(currentEntry);
       }
     }

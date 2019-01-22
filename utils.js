@@ -38,14 +38,14 @@ function recEntryListToTree (entryList) {
     let i = Math.floor(entryList.length / 2);
     let entry = entryList[i];
     currentNode = { 'entry': entry, 'left': null, 'right': null };
-    currentNode['left'] = recEntryListToTree(entryList.slice(0, i - 1));
+    currentNode['left'] = recEntryListToTree(entryList.slice(0, i));
     currentNode['right'] = recEntryListToTree(entryList.slice(i + 1, entryList.length + 1));
   }
 
   return currentNode;
 }
 
-function findIntervalInTime (time, rootNode) {
+function findIntervalAtTime (time, rootNode) {
   /*
   Given a pre-compiled search tree and a time, returns the interval at that time
   */
@@ -64,10 +64,10 @@ function findIntervalInTime (time, rootNode) {
     }
   }
 
-  return matchNode;
+  return matchNode ? matchNode.entry : null;
 }
 
-function findPointInTime (time, rootNode, fuzzyMatching) {
+function findPointAtTime (time, rootNode, fuzzyMatching) {
   /*
   Given a pre-compiled search tree and a time, returns the interval at that time
   */
@@ -94,7 +94,7 @@ function findPointInTime (time, rootNode, fuzzyMatching) {
     matchNode = closestNode;
   }
 
-  return matchNode.entry;
+  return matchNode ? matchNode.entry : null;
 }
 
-export { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalInTime, findPointInTime };
+export { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalAtTime, findPointAtTime };
