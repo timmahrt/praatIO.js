@@ -67,16 +67,24 @@ function findIntervalAtTime (time, rootNode) {
   return matchNode ? matchNode.entry : null;
 }
 
-function findPointAtTime (time, rootNode, fuzzyMatching) {
+function findPointAtTime (time, rootNode, findClosest = false) {
   /*
-  Given a pre-compiled search tree and a time, returns the interval at that time
+  Given a pre-compiled search tree and a time, returns the point at that time
+
+  If findClosest is true, return the entryList point that is closest to this time, even if its not an exact match.  By default, only search for exact matches.
   */
   let currNode = rootNode;
   let matchNode = null;
   let closestNode = rootNode;
   while (currNode !== null) {
-    if (Math.abs(currNode.entry[0] - time) < Math.abs(closestNode.entry[0] - time)) {
-      closestNode = currNode;
+    let newDiff = Math.abs(currNode.entry[0] - time);
+    let oldDiff = Math.abs(closestNode.entry[0] - time);
+    if (newDiff <= oldDiff) {
+      // In the case two values are equidistant from the target time
+      // choose the earlier of the  values
+      if (newDiff !== oldDiff || currNode.entry[0] < closestNode.entry[0]) {
+        closestNode = currNode;
+      }
     }
     if (currNode.entry[0] === time) {
       matchNode = currNode;
@@ -90,7 +98,7 @@ function findPointAtTime (time, rootNode, fuzzyMatching) {
     }
   }
 
-  if (fuzzyMatching === true && matchNode === null) {
+  if (findClosest === true && matchNode === null) {
     matchNode = closestNode;
   }
 

@@ -513,7 +513,7 @@ class IntervalTier extends TextgridTier {
     let retTier = this.newCopy();
 
     this.entryList.forEach((entry) => {
-      retTier.eraseRegion(entry[0], entry[1], 'truncate', false);
+      retTier.eraseRegion(entry[0], entry[1], 'truncated', false);
     });
 
     return retTier;
@@ -892,7 +892,7 @@ class Textgrid {
     newTg.maxTimestamp = maxTimestamp;
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tier = this.tierDict[this.tierNameList[i]];
-      tier = tier.eraseRegion(start, stop, 'truncate', doShrink);
+      tier = tier.eraseRegion(start, stop, 'truncated', doShrink);
       newTg.addTier(tier);
     }
 
@@ -1038,4 +1038,11 @@ class Textgrid {
   }
 }
 
-export { Textgrid, IntervalTier, PointTier, TierCreationException, TextgridCollisionException, INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH };
+export {
+  Textgrid, IntervalTier, PointTier,
+  NonMatchingTiersException, IncorrectArgumentException,
+  NonOverlappingRegionException, TierExistsException,
+  TierCreationException, TextgridCollisionException,
+  OvershootModificationException, IndexException,
+  INTERVAL_TIER, POINT_TIER, MIN_INTERVAL_LENGTH
+};
