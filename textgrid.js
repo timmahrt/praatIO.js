@@ -80,7 +80,7 @@ class TextgridTier {
   constructor (name, entryList, minT, maxT) {
     // Don't allow a timeless tier to exist
     if (minT === null || maxT === null) {
-      throw new TierCreationException('All textgrid tiers must have a min and max duration');
+      throw new TierCreationException('All textgrid tiers must have a min and max timestamp');
     }
 
     this.name = name;
@@ -141,12 +141,8 @@ class TextgridTier {
     return !!isEqual;
   }
 
-  eraseRegion (start, stop, collisionCode, doShrink) {
+  eraseRegion (start, stop, doShrink, collisionCode) {
     let retTier;
-
-    if (doIntervalsOverlap([start, stop], [this.minTimestamp, this.maxTimestamp]) === false) {
-      throw new NonOverlappingRegionException([start, stop], [this.minTimestamp, this.maxTimestamp]);
-    }
 
     let codeList = ['strict', 'truncated'];
     if (!codeList.includes(collisionCode)) {
@@ -172,9 +168,9 @@ class TextgridTier {
         retTier = this.crop(this.minTimestamp, start, collisionCode, false);
       }
       else if (start <= this.minTimestamp && stop < this.maxTimestamp) {
-        retTier = this.crop(this.stop, this.maxTimestamp, collisionCode, false);
+        retTier = this.crop(stop, this.maxTimestamp, collisionCode, false);
         if (doShrink === true) {
-          retTier.editTimestamps(this.stop - this.minTimestamp);
+          retTier = retTier.editTimestamps(-1 * stop, true);
         }
       }
       else {
@@ -242,9 +238,9 @@ class PointTier extends TextgridTier {
     // Determine the min and max timestamps
     let timeList = entryList.map(entry => entry[0]);
     if (minT !== null) timeList.push(parseFloat(minT));
-    if (maxT !== null) timeList.push(parseFloat(maxT));
-
     if (timeList.length > 0) minT = Math.min(...timeList);
+
+    if (maxT !== null) timeList.push(parseFloat(maxT));
     if (timeList.length > 0) maxT = Math.max(...timeList);
 
     // Finish intialization
@@ -302,7 +298,7 @@ class PointTier extends TextgridTier {
     if (this.minTimestamp < newMin) newMin = this.minTimestamp;
     if (this.maxTimestamp > newMax) newMax = this.maxTimestamp;
 
-    return new IntervalTier(this.name, newEntryList, newMin, newMax);
+    return new PointTier(this.name, newEntryList, newMin, newMax);
   }
 
   entriesAreEqual (entryA, entryB) {
@@ -399,12 +395,11 @@ class IntervalTier extends TextgridTier {
 
     // Determine the min and max timestamps
     let startTimeList = entryList.map(entry => entry[0]);
-    let endTimeList = entryList.map(entry => entry[1]);
-
     if (minT !== null) startTimeList.push(parseFloat(minT));
-    if (maxT !== null) endTimeList.push(parseFloat(maxT));
-
     if (startTimeList.length > 0) minT = Math.min(...startTimeList);
+
+    let endTimeList = entryList.map(entry => entry[1]);
+    if (maxT !== null) endTimeList.push(parseFloat(maxT));
     if (endTimeList.length > 0) maxT = Math.max(...endTimeList);
 
     // Finish initialization
@@ -513,7 +508,7 @@ class IntervalTier extends TextgridTier {
     let retTier = this.newCopy();
 
     this.entryList.forEach((entry) => {
-      retTier.eraseRegion(entry[0], entry[1], 'truncated', false);
+      retTier.eraseRegion(entry[0], entry[1], false, 'truncated');
     });
 
     return retTier;
@@ -734,13 +729,34 @@ class Textgrid {
 
     this.tierDict[tier.name] = tier;
 
-    if (this.minTimestamp === null || tier.minTimestamp < this.minTimestamp) {
+    if (this.minTimestamp === null) {
       this.minTimestamp = tier.minTimestamp;
     }
-
-    if (this.maxTimestamp === null || tier.maxTimestamp > this.maxTimestamp) {
+    if (this.maxTimestamp === null) {
       this.maxTimestamp = tier.maxTimestamp;
     }
+    this.homogonizeMinMaxTimestamps();
+  }
+
+  homogonizeMinMaxTimestamps () {
+    /*
+    Makes all min and max timestamps within a textgrid the same
+    */
+    let minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
+    let maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
+
+    let minTimestamp = Math.min(...minTimes);
+    let maxTimestamp = Math.max(...maxTimes);
+
+    this.minTimestamp = minTimestamp;
+    this.tierNameList.forEach(tierName => {
+      this.tierDict[tierName].minTimestamp = minTimestamp;
+    })
+
+    this.maxTimestamp = maxTimestamp;
+    this.tierNameList.forEach(tierName => {
+      this.tierDict[tierName].maxTimestamp = maxTimestamp;
+    })
   }
 
   appendTextgrid (tg, onlyMatchingNames = true) {
@@ -892,7 +908,7 @@ class Textgrid {
     newTg.maxTimestamp = maxTimestamp;
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tier = this.tierDict[this.tierNameList[i]];
-      tier = tier.eraseRegion(start, stop, 'truncated', doShrink);
+      tier = tier.eraseRegion(start, stop, doShrink, 'truncated');
       newTg.addTier(tier);
     }
 
