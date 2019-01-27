@@ -1,4 +1,5 @@
 
+/** Test if two intervals overlap */
 function doIntervalsOverlap (interval1, interval2) {
   let [start1, end1] = interval1;
   let [start2, end2] = interval2;
@@ -7,32 +8,31 @@ function doIntervalsOverlap (interval1, interval2) {
   return overlapAmount > 0;
 }
 
+/** Test for near equivalence in float values.  From here http://realtimecollisiondetection.net/blog/?p=89 */
 function isClose (a, b, relTol = 1e-14, abs_tol = 0.0) {
   return Math.abs(a - b) <= Math.max(relTol * Math.max(Math.abs(a), Math.abs(b)), abs_tol)
 }
 
+/** Pass to sort, when sorting a list of entries to sort entries by start time */
 function sortCompareEntriesByTime (x, y) {
   return x[0] - y[0];
 }
 
+/**
+ * Builds a balanced binary tree from an entry list for quickly finding things at certain times
+ * @param {Array} entryList - can consist of intervals or points in time
+ * @return {Object} The root node of the tree. Each node has a left and right branch;
+ *  nodes in the left branch occur in time before the start time in parent nodes
+ *  nodes in the right branch occur in time after the stop time in parent nodes
+ */
 function entryListToTree (entryList) {
-  /*
-  Builds a balanced binary tree from an entry list for quickly finding things at certain times
-
-  entryList can consist of intervals or points in time
-  Each node has a left and right branch;
-    - nodes in the left branch occur in time before the start time in this node
-    - nodes in the right branch occur in time after the stop time in this node
-  */
   entryList.sort(sortCompareEntriesByTime);
   let rootNode = recEntryListToTree(entryList);
   return rootNode;
 }
 
+/** Helper function that recursively builds a balanced binary tree */
 function recEntryListToTree (entryList) {
-  /*
-  Recursively builds a balanced binary tree
-  */
   let currentNode = null;
   if (entryList.length > 0) {
     let i = Math.floor(entryList.length / 2);
@@ -41,14 +41,16 @@ function recEntryListToTree (entryList) {
     currentNode['left'] = recEntryListToTree(entryList.slice(0, i));
     currentNode['right'] = recEntryListToTree(entryList.slice(i + 1, entryList.length + 1));
   }
-
   return currentNode;
 }
 
+/**
+ * Returns the interval in an IntervalTier that contains the given time
+ * @param {number} time
+ * @param {Object} rootNode - a tree built from entryListToTree()
+ * @return {Array} The matched interval.  Of the form [start, stop, label].
+ */
 function findIntervalAtTime (time, rootNode) {
-  /*
-  Given a pre-compiled search tree and a time, returns the interval at that time
-  */
   let currNode = rootNode;
   let matchNode = null;
   while (currNode !== null) {
@@ -67,12 +69,15 @@ function findIntervalAtTime (time, rootNode) {
   return matchNode ? matchNode.entry : null;
 }
 
+/**
+ * Returns the point in a PointTier that occurs at a specific time
+ * @param {number} time
+ * @param {Object} rootNode - a tree built from entryListToTree()
+ * @param {boolean} [findClosest=false] - If true, return the entryList point that is closest to this time, even if its not an exact match.
+ *  If false, only return exact matches.
+ * @return {Array} The matched point.  Of the form [time, label].
+ */
 function findPointAtTime (time, rootNode, findClosest = false) {
-  /*
-  Given a pre-compiled search tree and a time, returns the point at that time
-
-  If findClosest is true, return the entryList point that is closest to this time, even if its not an exact match.  By default, only search for exact matches.
-  */
   let currNode = rootNode;
   let matchNode = null;
   let closestNode = rootNode;

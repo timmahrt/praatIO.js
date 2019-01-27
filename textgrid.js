@@ -1,9 +1,16 @@
-/*
-Written by Tim Mahrt
-March 25, 2015
-*/
+/**
+ * A library for working with transcribed or annotated audio.
+ *
+ * A Textgrid() is a container for annotation tiers. Annotation tiers
+ * come in two varieties: IntervalTier and PointTier. With this library,
+ * a textgrid can be queried, used to filter data points, cleaned,
+ * or algorithmically altered.
+ *
+ * @author Tim Mahrt
+ * @since March 25, 2015
+ */
 
-import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalAtTime, findPointAtTime } from './utils.js';
+import { isClose, sortCompareEntriesByTime, entryListToTree, findIntervalAtTime, findPointAtTime } from './utils.js';
 
 const INTERVAL_TIER = 'IntervalTier';
 const POINT_TIER = 'TextTier';
@@ -76,6 +83,7 @@ class IndexException extends Error {
   }
 };
 
+/** Abstract class for tiers. */
 class TextgridTier {
   constructor (name, entryList, minT, maxT) {
     // Don't allow a timeless tier to exist
@@ -231,6 +239,7 @@ class TextgridTier {
   }
 }
 
+/** Class representing a PointTier. */
 class PointTier extends TextgridTier {
   constructor (name, entryList, minT = null, maxT = null) {
     entryList = entryList.map(([timeV, label]) => [parseFloat(timeV), label]);
@@ -249,13 +258,15 @@ class PointTier extends TextgridTier {
     this.labelIndex = 1;
   }
 
+  /**
+   * Creates a new tier containing only entries from inside the crop interval
+   * @param {number} cropStart
+   * @param {number} cropEnd
+   * @param {string} mode - mode is ignored.  This parameter is kept for compatibility with IntervalTier.crop()
+   * @param {boolean} rebaseToZero - if true, all times will be subtracted by cropStart
+   * @return {PointTier} Returns a copy of this tier with only values from the crop region.
+   */
   crop (cropStart, cropEnd, mode, rebaseToZero) {
-    /*
-    Creates a new tier containing all entires inside the new interval
-
-    mode is ignored.  This parameter is kept for compatibility with
-    IntervalTier.crop()
-    */
     let newEntryList = [];
 
     for (let i = 0; i < this.entryList.length; i++) {
@@ -308,17 +319,14 @@ class PointTier extends TextgridTier {
     return !!isEqual;
   }
 
+  /**
+   * Get the values that occur at points in the point tier.
+   * @param {Array} dataTupleList - should be ordered in time;
+   *  must be of the form [(t1, v1a, v1b, ..), (t2, v2a, v2b, ..), ..]
+   * @param {boolean} fuzzyMatching - if true, returns the closest occurring value;
+   *  if false, only returns exact matches.
+   */
   getValuesAtPoints (dataTupleList, fuzzyMatching) {
-    /*
-    Get the values that occur at points in the point tier
-
-    If fuzzyMatching is True, if there is not a feature value
-    at a point, the nearest feature value will be taken.
-
-    The procedure assumes that all data is ordered in time.
-    dataTupleList should be in the form
-    [(t1, v1a, v1b, ..), (t2, v2a, v2b, ..), ..]
-    */
     let searchTree = entryListToTree(this.entryList);
 
     let returnList = [];
@@ -367,13 +375,14 @@ class PointTier extends TextgridTier {
     }
   }
 
+  /**
+   * Inserts a region into the tier
+   * @param {number} start
+   * @param {number} duration
+   * @param {string} collisionCode - ignored; added for compatibility with IntervalTier.insertSpace()
+   * @return {PointTier} A copy of this tier with the inserted blank space.
+   */
   insertSpace (start, duration, collisionCode) {
-    /*
-    Inserts a region into the tier
-
-    collisionCode: Ignored for the moment (added for compatibility
-                   with insertSpace() for Interval Tiers)
-    */
     let newEntryList = [];
     for (let i = 0; i < this.entryList.length; i++) {
       let entry = this.entryList[i];
@@ -389,6 +398,7 @@ class PointTier extends TextgridTier {
   }
 }
 
+/** Class representing an IntervalTier. */
 class IntervalTier extends TextgridTier {
   constructor (name, entryList, minT = null, maxT = null) {
     entryList = entryList.map(([startTime, endTime, label]) => [parseFloat(startTime), parseFloat(endTime), label]);
@@ -408,20 +418,19 @@ class IntervalTier extends TextgridTier {
     this.labelIndex = 2;
   }
 
+  /**
+   * Creates a new tier with only the entries from the crop region
+   * @param {number} cropStart
+   * @param {number} cropEnd
+   * @param {string} number - one of 'strict', 'lax', or 'truncated'
+      If 'strict', only intervals wholly contained by the crop interval will be kept.
+      If 'lax', partially contained intervals will be kept.
+      If 'truncated', partially contained intervals will be
+          truncated to fit within the crop region.
+   * @param {boolean} rebaseToZero - if true the cropped textgrid values will be subtracted by cropStart
+   * @return {Textgrid} A copy of this tier with only entries from the crop region
+   */
   crop (cropStart, cropEnd, mode, rebaseToZero) {
-    /*
-    Creates a new tier with all entries that fit inside the new interval
-
-    mode = {'strict', 'lax', 'truncated'}
-        If 'strict', only intervals wholly contained by the crop
-            interval will be kept
-        If 'lax', partially contained intervals will be kept
-        If 'truncated', partially contained intervals will be
-            truncated to fit within the crop region.
-
-    If rebaseToZero is true, the cropped textgrid values will be
-        subtracted by the cropStart
-    */
     let newEntryList = [];
     for (let i = 0; i < this.entryList.length; i++) {
       let entry = this.entryList[i];
@@ -498,13 +507,12 @@ class IntervalTier extends TextgridTier {
     return croppedTier;
   }
 
+  /**
+   * Takes the set difference of this tier and the given one.
+   * Any overlapping portions of entries with entries in this textgrid
+   * will be removed from the returned tier.
+   */
   difference (tier) {
-    /*
-    Takes the set difference of this tier and the given one
-
-    Any overlapping portions of entries with entries in this textgrid
-    will be removed from the returned tier.
-    */
     let retTier = this.newCopy();
 
     this.entryList.forEach((entry) => {
@@ -548,13 +556,11 @@ class IntervalTier extends TextgridTier {
     return !!isEqual
   }
 
+  /**
+   * Returns data from dataTupleList contained in labeled intervals
+   * @params {Array} dataTupleList  - should be of the form: [(time1, value1a, value1b,...), (time2, value2a, value2b...), ...]
+   */
   getValuesInIntervals (dataTupleList) {
-    /*
-    Returns data from dataTupleList contained in labeled intervals
-
-    dataTupleList should be of the form:
-    [(time1, value1a, value1b,...), (time2, value2a, value2b...), ...]
-    */
     let searchTree = entryListToTree(this.entryList);
 
     let returnList = [];
@@ -568,10 +574,8 @@ class IntervalTier extends TextgridTier {
     return returnList;
   }
 
+  /** Returns the regions of the textgrid without labels */
   getNonEntries () {
-    /*
-    Returns the regions of the textgrid without labels
-    */
     let invertedEntryList = [];
     if (this.entryList[0][0] > 0) {
       invertedEntryList.push([0, this.entryList[0][0], '']);
@@ -638,19 +642,20 @@ class IntervalTier extends TextgridTier {
     }
   }
 
-  insertSpace (spaceStart, spaceDuration, collisionCode) {
-    /*
-    Inserts a blank region into the tier
-
-    collisionCode: in the event that an interval stradles the
-                   starting point
-    - 'stretch' - stretches the interval by /duration/ amount
-    - 'split' - splits the interval into two--everything to the
-                right of 'start' will be advanced by 'duration' seconds
-    - 'no change' - leaves the interval as is with no change
-    - None or any other value - IncorrectArgumentException is thrown
-    */
-
+  /**
+   * Inserts a blank region into the tier
+   * @params {number} start
+   * @params {number} duration
+   * @params {string} collisionCode - determines what to do if the insertion start occurs inside a labeled interval.
+   *  Must be one of 'stretch', 'split', or 'no change'.
+   *  If 'stretch' - stretches the interval by /duration/ amount.
+   *  If 'split' - splits the interval into two--everything to the
+              right of 'start' will be advanced by 'duration' seconds.
+   *  If 'no change' - leaves the interval as is with no change.
+   *  If None or any other value - IncorrectArgumentException is thrown.
+   * @return {IntervalTier} A copy of this tier with an inserted blank space.
+   */
+  insertSpace (start, duration, collisionCode) {
     let codeList = ['stretch', 'split', 'no change']
     if (!codeList.includes(collisionCode)) {
       throw new IncorrectArgumentException(collisionCode, codeList);
@@ -658,38 +663,37 @@ class IntervalTier extends TextgridTier {
 
     let newEntryList = [];
     for (let i = 0; i < this.entryList.length; i++) {
-      let [start, stop, label] = this.entryList[i];
-      if (stop <= spaceStart) {
-        newEntryList.push([start, stop, label])
+      let [entryStart, entryStop, label] = this.entryList[i];
+      if (entryStop <= start) {
+        newEntryList.push([entryStart, entryStop, label])
       }
-      else if (start >= spaceStart) {
-        newEntryList.push([start + spaceDuration, stop + spaceDuration, label])
+      else if (entryStart >= start) {
+        newEntryList.push([entryStart + duration, entryStop + duration, label])
       }
-      else if (start <= spaceStart && stop > spaceStart) {
+      else if (entryStart <= start && entryStop > start) {
         if (collisionCode === 'stretch') {
-          newEntryList.push([start, stop + spaceDuration, label])
+          newEntryList.push([entryStart, entryStop + duration, label])
         }
         else if (collisionCode === 'split') {
-          newEntryList.push([start, spaceStart, label])
-          newEntryList.push([spaceStart + spaceDuration, spaceStart + spaceDuration + (stop - spaceStart), label])
+          newEntryList.push([entryStart, start, label])
+          newEntryList.push([start + duration, start + duration + (entryStop - start), label])
         }
         else if (collisionCode === 'no change') {
-          newEntryList.push([start, stop, label])
+          newEntryList.push([entryStart, entryStop, label])
         }
       }
     }
 
-    return this.newCopy({ 'entryList': newEntryList, 'maxTimestamp': this.maxTimestamp + spaceDuration })
+    return this.newCopy({ 'entryList': newEntryList, 'maxTimestamp': this.maxTimestamp + duration })
   }
 
+  /**
+   * Takes the set intersection of this tier and the given one.
+   * Only intervals that exist in both tiers will remain in the
+   * returned tier.  If intervals partially overlap, only the overlapping
+   * portion will be returned.
+   */
   intersection (tier) {
-  /*
-  Takes the set intersection of this tier and the given one
-
-  Only intervals that exist in both tiers will remain in the
-  returned tier.  If intervals partially overlap, only the overlapping
-  portion will be returned.
-  */
     let newEntryList = [];
     for (let i = 0; i < tier.entryList.length; i++) {
       let entry = tier.entryList[i];
@@ -706,6 +710,7 @@ class IntervalTier extends TextgridTier {
   }
 }
 
+/** Class representing a Textgrid. */
 class Textgrid {
   constructor () {
     this.tierNameList = [];
@@ -715,10 +720,8 @@ class Textgrid {
     this.maxTimestamp = null;
   }
 
+  /** Adds a tier to the textgrid.  Added to the end, unless an index is specified. */
   addTier (tier, tierIndex = null) {
-    /*
-    Adds a tier to the textgrid.  Added to the end, unless an index is specified.
-    */
     if (Object.keys(this.tierDict).includes(tier.name)) {
       throw new TierExistsException(tier.name);
     }
@@ -737,14 +740,13 @@ class Textgrid {
     this.homogonizeMinMaxTimestamps();
   }
 
+  /**
+   * Append one textgrid to the end of this one
+   * @param {Textgrid} tg
+   * @param {boolean} onlyMatchingNames - only include tiers that appear in both textgrids
+   * @return {Textgrid}
+   */
   appendTextgrid (tg, onlyMatchingNames = true) {
-    /*
-    Append one textgrid to the end of this one
-
-    if onlyMatchingNames is False, tiers that don't appear in both
-    textgrids will also appear
-    */
-
     // Get all tier names with no duplicates.  Ordered first by
     // this textgrid and then by the other textgrid.
     let combinedTierNameList = this.tierNameList;
@@ -804,20 +806,18 @@ class Textgrid {
     return retTg;
   }
 
+  /**
+   * Creates a textgrid that only contains intervals from the crop region
+   * @param {number} cropStart
+   * @param {number} cropEnd
+   * @param {string} mode - one of 'strict', 'lax', or 'truncated'
+   *  If 'strict', only intervals wholly contained by the crop interval will be kept.
+   *  If 'lax', partially contained intervals will be kept.
+   *  If 'truncated', partially contained intervals will be truncated to fit within the crop region.
+   * @param {boolean} rebaseToZero - if true, the all times in entries will be subtracted by the cropStart
+   * @return {Textgrid} A new textgrid containing only entries that appear in the crop region.
+   */
   crop (cropStart, cropEnd, mode, rebaseToZero) {
-    /*
-    Creates a textgrid where all intervals fit within the crop region
-
-    mode = {'strict', 'lax', 'truncated'}
-        If 'strict', only intervals wholly contained by the crop
-            interval will be kept
-        If 'lax', partially contained intervals will be kept
-        If 'truncated', partially contained intervals will be
-            truncated to fit within the crop region.
-
-    If rebaseToZero is true, the cropped textgrid values will be
-        subtracted by the cropStart
-    */
     let newTG = new Textgrid();
 
     let minT = cropStart;
@@ -856,10 +856,8 @@ class Textgrid {
     return !!isEqual;
   }
 
+  /** Modifies all timestamps by a constant amount */
   editTimestamps (offset, allowOvershoot) {
-    /*
-    Modifies all timestamps by a constant amount
-    */
     let tg = new Textgrid();
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tier = this.tierDict[this.tierNameList[i]];
@@ -869,14 +867,14 @@ class Textgrid {
     return tg;
   }
 
+  /**
+   * Makes a region in a tier blank (removes all contained entries)
+   * @param {number} start
+   * @param {number} stop
+   * @param {boolean} doShrink - if true, all values after the erase region will be shifted earlier in time by (stop - start) seconds
+   * @return {Textgrid} A copy of this textgrid without entries in the specified region.
+   */
   eraseRegion (start, stop, doShrink) {
-    /*
-    Makes a region in a tier blank (removes all contained entries)
-
-    If 'doShrink' is True, all entries appearing after the erased interval
-    will be shifted to fill the void (ie the duration of the textgrid
-    will be reduced by start - stop)
-    */
     let duration = stop - start;
     let maxTimestamp = this.maxTimestamp;
     if (doShrink === true) maxTimestamp -= duration;
@@ -893,10 +891,8 @@ class Textgrid {
     return newTg;
   }
 
+  /** Makes all min and max timestamps within a textgrid the same */
   homogonizeMinMaxTimestamps () {
-    /*
-    Makes all min and max timestamps within a textgrid the same
-    */
     let minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
     let maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
 
@@ -914,21 +910,19 @@ class Textgrid {
     })
   }
 
+  /**
+   * Inserts a blank region into a textgrid
+   * @param {number} start
+   * @param {number} duration - Note: every item that occurs after /start/ will be pushed back by /duration/ seconds.
+   * @param {boolean} collisionCode - if /start/ occurs inside a labeled interval, this determines the behaviour.
+   *  Must be one of 'stretch', 'split', or 'no change'
+   *  'stretch' - stretches the interval by /duration/ amount
+   *  'split' - splits the interval into two--everything to the
+              right of 'start' will be advanced by 'duration' seconds
+   *  'no change' - leaves the interval as is with no change
+   * @return {Textgrid} A copy of this textgrid with the inserted blank region.
+   */
   insertSpace (start, duration, collisionCode) {
-    /*
-    Inserts a blank region into a textgrid
-
-    Every item that occurs after /start/ will be pushed back by
-    /duration/ seconds
-
-    collisionCode: in the event that an interval stradles the
-                   starting point
-    - 'stretch' - stretches the interval by /duration/ amount
-    - 'split' - splits the interval into two--everything to the
-                right of 'start' will be advanced by 'duration' seconds
-    - 'no change' - leaves the interval as is with no change
-    - None or any other value - AssertionError is thrown
-    */
     let newTg = new Textgrid();
     newTg.minTimestamp = this.minTimestamp;
     newTg.maxTimestamp = this.maxTimestmap + duration;
@@ -942,15 +936,15 @@ class Textgrid {
     return newTg;
   }
 
+  /**
+   * Combine tiers in a textgrid.
+   * @param {callback} [includeFunc=null] - filters the intervals to consider for merging.  If null, all intervals are merged.
+   * @param {Array} [tierNameList=null] - The list of tier names to include in the merge.  If null, all tiers are merged.
+   * @param {boolean} [preserveOtherTiers=true] - If true, keep tiers that were not merged.
+   *  If false, the return textgrid will only have a single tier.
+   * @return {Textgrid} A copy of this textgrid with the specified tiers.
+   */
   mergeTiers (includeFunc = null, tierNameList = null, preserveOtherTiers = true) {
-    /*
-    Combine tiers
-
-    /includeFunc/ regulates which intervals to include in the merging
-      with all others being tossed (default accepts all)
-
-    If /tierNameList/ is none, combine all tiers.
-    */
     if (tierNameList === null) {
       tierNameList = this.tierNameList;
     }
@@ -1002,10 +996,8 @@ class Textgrid {
     return tg;
   }
 
+  /** Returns a deep copy of this textgrid. */
   newCopy () {
-    /*
-    Returns a deep copy of this textgrid
-    */
     let textgrid = new Textgrid();
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tierName = this.tierNameList[i];
@@ -1018,10 +1010,8 @@ class Textgrid {
     return textgrid;
   }
 
+  /** Renames one tier.  The new name must not exist in the textgrid already. */
   renameTier (oldName, newName) {
-    /*
-    Renames one tier.  The new name must not exist in the textgrid already.
-    */
     if (Object.keys(this.tierDict).includes(newName)) {
       throw new TierExistsException(newName);
     }
@@ -1034,18 +1024,14 @@ class Textgrid {
     this.addTier(newTier, tierIndex);
   }
 
+  /** Removes the given tier from this textgrid. */
   removeTier (name) {
-    /*
-    Removes the given tier from this textgrid.
-    */
     this.tierNameList.splice(this.tierNameList.indexOf(name), 1);
     delete this.tierDict[name];
   }
 
+  /** Replace the tier with the given name with a new tier */
   replaceTier (name, newTier) {
-    /*
-    Replace the tier with the given name with a new tier
-    */
     let tierIndex = this.tierNameList.indexOf(name);
     this.removeTier(name);
     this.addTier(newTier, tierIndex);

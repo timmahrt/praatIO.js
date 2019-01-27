@@ -1,6 +1,6 @@
 import { toBeDeepCloseTo } from 'jest-matcher-deep-close-to';
 
-import { Textgrid, IntervalTier, PointTier, INTERVAL_TIER, POINT_TIER } from '../../../textgrid.js';
+import { Textgrid, IntervalTier, PointTier } from '../../../textgrid.js';
 
 expect.extend({ toBeDeepCloseTo });
 

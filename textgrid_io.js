@@ -2,9 +2,13 @@ import iconvlite from 'iconv-lite';
 import { Textgrid, IntervalTier, PointTier, POINT_TIER, INTERVAL_TIER, MIN_INTERVAL_LENGTH } from './textgrid.js';
 
 /**
-Python-like split from
-http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
-*/
+ * Python-like split from
+ * http://stackoverflow.com/questions/6131195/javascript-splitting-string-from-the-first-comma
+ * @param {string} str
+ * @param {string} separator - the separator to split on
+ * @param {number} max - the max number of times to split
+ * @return {Array}
+ */
 function extendedSplit (str, separator, max) {
   let out = [];
   let index = 0;
@@ -235,10 +239,9 @@ function parseShortTextgrid (data) {
 }
 
 /**
-Fills in the space between intervals with empty space
-
-This is necessary to do when saving to create a well-formed textgrid
-*/
+ * Fills in the space between intervals with empty space.
+ * This is necessary to do when saving to create a well-formed textgrid.
+ */
 function fillInBlanks (tier, blankLabel = '', startTime = null, endTime = null) {
   if (startTime === null) startTime = tier.minTimestamp;
   if (endTime === null) endTime = tier.maxTimestamp;
@@ -312,12 +315,11 @@ function tierToText (tier) {
 }
 
 /**
-Remove intervals that are very tiny
-
-Doing many small manipulations on intervals can lead to the creation
-of ultrashort intervals (e.g. 1*10^-15 seconds long).  This function
-removes such intervals.
-*/
+ * Remove intervals that are very tiny
+ * Doing many small manipulations on intervals can lead to the creation
+ * of ultrashort intervals (e.g. 1*10^-15 seconds long).  This function
+ * removes such intervals.
+ */
 function removeUltrashortIntervals (tier, minLength) {
   // First, remove tiny intervals
   let newEntryList = [];
@@ -356,12 +358,14 @@ function removeUltrashortIntervals (tier, minLength) {
 }
 
 /**
-Formats a textgrid instance for saving to a .csv file
-
-One row is listed for each entry in the tier with name /pivotTierName/.
-The corresponding entry in each tier will be provided on the same row
-along with the start and end time of the entry from the pivot tier.
-*/
+ * Formats a textgrid instance for saving to a .csv file
+ * @param {Textgrid} tg
+ * @param {string} pivotTierName - One row in the output is listed for each entry in this tier.
+ *  The corresponding entry in each tier will be provided on the same row
+ *  along with the start and end time of the entry from the pivot tier.
+ * @param {Array} [tierNameList=null] - the list of tier names to save.  If null, save all tiers.
+ * @return {text}
+ */
 function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null) {
   if (!tierNameList) tierNameList = tg.tierNameList;
   let colHeader = tierNameList.slice();
@@ -399,10 +403,11 @@ function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null) {
 }
 
 /**
-Formats a textgrid instance for saving to a .TextGrid file.
-
-If minimumIntervalLength is null, then ultrashortintervals will not be checked for.
-*/
+ * Formats a textgrid instance for saving to a .TextGrid file.
+ * @param {Textgrid} tg
+ * @param {number} [minimumIntervalLength=MIN_INTERVAL_LENGTH] - remove all intervals shorter than this; if null, don't remove any intervals
+ * @return A text representation of a textgrid that can be opened by Praat
+ */
 function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
   for (let i = 0; i < tg.tierNameList.length; i++) {
     tg.tierDict[tg.tierNameList[i]].sort();
@@ -441,10 +446,10 @@ function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
 }
 
 /**
-Creates an instance of a Textgrid from the contents of a .Textgrid file.
-
-Contents may either be raw text or a Buffer
-*/
+ * Creates an instance of a Textgrid from the contents of a .Textgrid file.
+ * @param {Buffer|string} text - can be either a buffer or a raw text string
+ * @return {Textgrid}
+ */
 function parseTextgrid (text) {
   text = decodeBuffer(text);
   text = text.replace(/\r\n/g, '\n');
@@ -462,10 +467,10 @@ function parseTextgrid (text) {
 }
 
 /**
-Decodes a buffer from utf16/8 to text.
-
-If not given a buffer, it returns the input.
-*/
+ * Decodes a buffer from utf16/8 to text.
+ * @param {Buffer} buffer - if not of type Buffer, it will be returned without modification.
+ * @return {string}
+ */
 function decodeBuffer (buffer) {
   let returnText = buffer
   if (Buffer.isBuffer(buffer)) {
