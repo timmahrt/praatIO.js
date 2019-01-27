@@ -832,3 +832,96 @@ test('Deleting the end of a textgrid with textgrid.eraseRegion, there is no diff
 
   expect(newTg1.equals(newTg2)).toEqual(true);
 })
+
+test('Can textgrid.insertspace into the middle of a textgrid', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.insertSpace(2.0, 1.0, 'stretch');
+
+  let oldSpeaker1Tier = tg.tierDict['speaker 1'];
+  let oldSpeaker2Tier = tg.tierDict['speaker 2'];
+  let oldPitchTier = tg.tierDict['pitch vals'];
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toEqual(oldSpeaker1Tier.entryList);
+  expect(speaker2Tier.entryList).not.toEqual(oldSpeaker2Tier.entryList);
+  expect(pitchTier.entryList).toEqual(oldPitchTier.entryList);
+
+  expect(speaker2Tier.entryList).toBeDeepCloseTo([[4.56, 4.98, 'and'], [4.98, 5.21, 'Fred'], [5.21, 5.44, 'caught'], [5.44, 5.53, 'it']]);
+
+  expect(newTg.maxTimestamp).toEqual(5.53);
+})
+
+test('Can textgrid.insertspace into the start of a textgrid', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.insertSpace(0.0, 0.5, 'stretch');
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toBeDeepCloseTo([[1.23, 1.52, 'Ichiro'], [1.52, 1.731, 'hit'], [1.83, 2.04, 'a'], [2.04, 2.41, 'homerun']]);
+  expect(speaker2Tier.entryList).toBeDeepCloseTo([[4.06, 4.48, 'and'], [4.48, 4.71, 'Fred'], [4.71, 4.94, 'caught'], [4.94, 5.03, 'it']]);
+  expect(pitchTier.entryList).toBeDeepCloseTo([[1.4, '120'], [1.61, '100'], [1.91, '110'], [2.29, '95']])
+
+  expect(newTg.maxTimestamp).toEqual(5.03);
+})
+
+test('Can textgrid.insertspace into the end of a textgrid', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.insertSpace(tg.maxTimestamp, 1.0, 'stretch');
+
+  let oldSpeaker1Tier = tg.tierDict['speaker 1'];
+  let oldSpeaker2Tier = tg.tierDict['speaker 2'];
+  let oldPitchTier = tg.tierDict['pitch vals'];
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toEqual(oldSpeaker1Tier.entryList);
+  expect(speaker2Tier.entryList).toEqual(oldSpeaker2Tier.entryList);
+  expect(pitchTier.entryList).toEqual(oldPitchTier.entryList);
+
+  expect(newTg.maxTimestamp).toEqual(5.53);
+})
+
+test('textgrid.insertspace, with collisionCode="stretch", stretches intervals', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.insertSpace(1.5, 1.0, 'stretch');
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+
+  // interval with label 'a' gets lengthened; intervals before are unaffected; intervals after are pushed 1 second later
+  expect(speaker1Tier.entryList).toBeDeepCloseTo([[0.73, 1.02, 'Ichiro'], [1.02, 1.231, 'hit'], [1.33, 2.54, 'a'], [2.54, 2.91, 'homerun']]);
+
+  expect(newTg.maxTimestamp).toEqual(5.53);
+})
+
+test('textgrid.insertspace, with collisionCode="split", splits conflicting intervals in 2 pieces', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.insertSpace(1.5, 1.0, 'split');
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+
+  // interval with label 'a' gets lengthened; intervals before are unaffected; intervals after are pushed 1 second later
+  expect(speaker1Tier.entryList).toBeDeepCloseTo([[0.73, 1.02, 'Ichiro'], [1.02, 1.231, 'hit'], [1.33, 1.5, 'a'], [2.5, 2.54, 'a'], [2.54, 2.91, 'homerun']]);
+
+  expect(newTg.maxTimestamp).toEqual(5.53);
+})
+
+test('textgrid.insertspace, with collisionCode="no change", does not affect conflicting intervals', () => {
+  let tg = getPrefabTextgrid();
+
+  // newTg1 inserts a space half-way through an entry list while
+  // newTg2 does not.  Since they don't modify values on collision,
+  // the behaviour of the two insertions is the same.
+  // In both cases, only intervals that start after the insertion point
+  // are affected.
+  let newTg1 = tg.insertSpace(1.5, 1.0, 'no change');
+  let newTg2 = tg.insertSpace(1.54, 1.0, 'no change');
+
+  expect(newTg1.equals(newTg2)).toEqual(true);
+})

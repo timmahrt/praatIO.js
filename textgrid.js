@@ -638,7 +638,7 @@ class IntervalTier extends TextgridTier {
     }
   }
 
-  insertSpace (spaceStart, duration, collisionCode) {
+  insertSpace (spaceStart, spaceDuration, collisionCode) {
     /*
     Inserts a blank region into the tier
 
@@ -656,23 +656,22 @@ class IntervalTier extends TextgridTier {
       throw new IncorrectArgumentException(collisionCode, codeList);
     }
 
-    let newEntryList = []
-    for (let i = 0; i < this.entryList; i++) {
+    let newEntryList = [];
+    for (let i = 0; i < this.entryList.length; i++) {
       let [start, stop, label] = this.entryList[i];
-
       if (stop <= spaceStart) {
         newEntryList.push([start, stop, label])
       }
       else if (start >= spaceStart) {
-        newEntryList.push([start + spaceStart, stop + spaceStart + duration, label])
+        newEntryList.push([start + spaceDuration, stop + spaceDuration, label])
       }
       else if (start <= spaceStart && stop > spaceStart) {
         if (collisionCode === 'stretch') {
-          newEntryList.push([start, spaceStart, label])
+          newEntryList.push([start, stop + spaceDuration, label])
         }
         else if (collisionCode === 'split') {
           newEntryList.push([start, spaceStart, label])
-          newEntryList.push([spaceStart + duration, stop + duration, label])
+          newEntryList.push([spaceStart + spaceDuration, spaceStart + spaceDuration + (stop - spaceStart), label])
         }
         else if (collisionCode === 'no change') {
           newEntryList.push([start, stop, label])
@@ -680,7 +679,7 @@ class IntervalTier extends TextgridTier {
       }
     }
 
-    return this.newCopy({ 'entryList': newEntryList, 'maxTimestamp': this.maxTimestamp + duration })
+    return this.newCopy({ 'entryList': newEntryList, 'maxTimestamp': this.maxTimestamp + spaceDuration })
   }
 
   intersection (tier) {
@@ -692,7 +691,7 @@ class IntervalTier extends TextgridTier {
   portion will be returned.
   */
     let newEntryList = [];
-    for (let i = 0; i < tier.entryList; i++) {
+    for (let i = 0; i < tier.entryList.length; i++) {
       let entry = tier.entryList[i];
       let subTier = this.crop(entry[0], entry[1], 'truncated', false);
 
@@ -736,27 +735,6 @@ class Textgrid {
       this.maxTimestamp = tier.maxTimestamp;
     }
     this.homogonizeMinMaxTimestamps();
-  }
-
-  homogonizeMinMaxTimestamps () {
-    /*
-    Makes all min and max timestamps within a textgrid the same
-    */
-    let minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
-    let maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
-
-    let minTimestamp = Math.min(...minTimes);
-    let maxTimestamp = Math.max(...maxTimes);
-
-    this.minTimestamp = minTimestamp;
-    this.tierNameList.forEach(tierName => {
-      this.tierDict[tierName].minTimestamp = minTimestamp;
-    })
-
-    this.maxTimestamp = maxTimestamp;
-    this.tierNameList.forEach(tierName => {
-      this.tierDict[tierName].maxTimestamp = maxTimestamp;
-    })
   }
 
   appendTextgrid (tg, onlyMatchingNames = true) {
@@ -883,7 +861,7 @@ class Textgrid {
     Modifies all timestamps by a constant amount
     */
     let tg = new Textgrid();
-    for (let i = 0; i < this.tierNameList; i++) {
+    for (let i = 0; i < this.tierNameList.length; i++) {
       let tier = this.tierDict[this.tierNameList[i]];
       tier = tier.editTimestamps(offset, allowOvershoot);
       tg.addTier(tier);
@@ -915,7 +893,28 @@ class Textgrid {
     return newTg;
   }
 
-  insertSpace (start, stop, collisionCode) {
+  homogonizeMinMaxTimestamps () {
+    /*
+    Makes all min and max timestamps within a textgrid the same
+    */
+    let minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
+    let maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
+
+    let minTimestamp = Math.min(...minTimes);
+    let maxTimestamp = Math.max(...maxTimes);
+
+    this.minTimestamp = minTimestamp;
+    this.tierNameList.forEach(tierName => {
+      this.tierDict[tierName].minTimestamp = minTimestamp;
+    })
+
+    this.maxTimestamp = maxTimestamp;
+    this.tierNameList.forEach(tierName => {
+      this.tierDict[tierName].maxTimestamp = maxTimestamp;
+    })
+  }
+
+  insertSpace (start, duration, collisionCode) {
     /*
     Inserts a blank region into a textgrid
 
@@ -930,15 +929,14 @@ class Textgrid {
     - 'no change' - leaves the interval as is with no change
     - None or any other value - AssertionError is thrown
     */
-    let duration = stop - start;
     let newTg = new Textgrid();
     newTg.minTimestamp = this.minTimestamp;
     newTg.maxTimestamp = this.maxTimestmap + duration;
 
     for (let i = 0; i < this.tierNameList.length; i++) {
       let tier = this.tierDict[this.tierNameList[i]];
-      tier = tier.insertSpace(start, start + duration, collisionCode);
-      newTg.addTier(newTg);
+      tier = tier.insertSpace(start, duration, collisionCode);
+      newTg.addTier(tier);
     }
 
     return newTg;
