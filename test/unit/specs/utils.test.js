@@ -74,7 +74,7 @@ function getSampleIntervals () {
 function getSamplePoints () {
   let nodeA = [0, 'a'];
   let nodeB = [2, 'b'];
-  let nodeC = [5, 'c'];
+  let nodeC = [4, 'c'];
 
   let nodeD = [12, 'd'];
 
@@ -156,8 +156,21 @@ test('findPointsAtTime works', () => {
   let entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
   let tree = entryListToTree(entryList);
 
-  expect(findPointAtTime(5, tree)).toEqual(nodeC);
-  expect(findPointAtTime(12, tree)).toEqual(nodeD);
-  expect(findPointAtTime(54, tree)).toEqual(nodeG);
-  expect(findPointAtTime(4, tree)).toEqual(null);
+  expect(findPointAtTime(4, tree, false)).toEqual(nodeC);
+  expect(findPointAtTime(12, tree, false)).toEqual(nodeD);
+  expect(findPointAtTime(54, tree, false)).toEqual(nodeG);
+  expect(findPointAtTime(4.5, tree, false)).toEqual(null);
+});
+
+test('findPointsAtTime returns the closest value if findClosest is true', () => {
+  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
+
+  let entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  let tree = entryListToTree(entryList);
+
+  expect(findPointAtTime(12, tree, true)).toEqual(nodeD); // exact matches still work
+  expect(findPointAtTime(3, tree, true)).toEqual(nodeB); // equidistant between two points
+  expect(findPointAtTime(5.5, tree, true)).toEqual(nodeC);
+  expect(findPointAtTime(35.1234, tree, true)).toEqual(nodeF);
+  expect(findPointAtTime(1000, tree, true)).toEqual(nodeG); // extreme values are ok
 });

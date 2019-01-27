@@ -1,32 +1,46 @@
+import { toBeDeepCloseTo } from 'jest-matcher-deep-close-to';
+
 import { Textgrid, IntervalTier, PointTier, INTERVAL_TIER, POINT_TIER } from '../../../textgrid.js';
+
+expect.extend({ toBeDeepCloseTo });
+
+function getIntervalTier1 () {
+  let intervals1 = [
+    [0.73, 1.02, 'Ichiro'],
+    [1.02, 1.231, 'hit'],
+    [1.33, 1.54, 'a'],
+    [1.54, 1.91, 'homerun']
+  ];
+  return new IntervalTier('speaker 1', intervals1);
+}
+
+function getIntervalTier2 () {
+  let intervals2 = [
+    [3.56, 3.98, 'and'],
+    [3.98, 4.21, 'Fred'],
+    [4.21, 4.44, 'caught'],
+    [4.44, 4.53, 'it']
+  ];
+  return new IntervalTier('speaker 2', intervals2);
+}
+
+function getPointTier1 () {
+  let points1 = [
+    [0.9, '120'],
+    [1.11, '100'],
+    [1.41, '110'],
+    [1.79, '95']
+  ];
+  return new PointTier('pitch vals', points1);
+}
 
 function getPrefabTextgrid (tierList = null) {
   let tg = new Textgrid();
 
   if (!tierList) {
-    let intervals1 = [
-      [0.73, 1.02, 'Ichiro'],
-      [1.02, 1.231, 'hit'],
-      [1.33, 1.54, 'a'],
-      [1.54, 1.91, 'homerun']
-    ];
-    let intervalTier1 = new IntervalTier('speaker 1', intervals1);
-
-    let intervals2 = [
-      [3.56, 3.98, 'and'],
-      [3.98, 4.21, 'Fred'],
-      [4.21, 4.44, 'caught'],
-      [4.44, 4.53, 'it']
-    ];
-    let intervalTier2 = new IntervalTier('speaker 2', intervals2);
-
-    let points1 = [
-      [0.9, '120'],
-      [1.11, '100'],
-      [1.41, '110'],
-      [1.79, '95']
-    ];
-    let pitchTier1 = new PointTier('pitch vals', points1);
+    let intervalTier1 = getIntervalTier1();
+    let intervalTier2 = getIntervalTier2();
+    let pitchTier1 = getPointTier1();
 
     tierList = [intervalTier1, intervalTier2, pitchTier1];
   }
@@ -40,19 +54,7 @@ function getPrefabTextgrid (tierList = null) {
 
 function testTier (tier, minTime, maxTime, entryList) {
   expect(tier.entryList.length).toEqual(entryList.length);
-  for (let i = 0; i < tier.entryList.length; i++) {
-
-    if (tier.tierType === INTERVAL_TIER) {
-      expect(tier.entryList[i][0]).toBeCloseTo(entryList[i][0]);
-      expect(tier.entryList[i][1]).toBeCloseTo(entryList[i][1]);
-      expect(tier.entryList[i][2]).toEqual(entryList[i][2]);
-    }
-    else if (tier.tierType === POINT_TIER) {
-      expect(tier.entryList[i][0]).toBeCloseTo(entryList[i][0]);
-      expect(tier.entryList[i][1]).toBeCloseTo(entryList[i][1]);
-      expect(tier.entryList[i][2]).toEqual(entryList[i][2]);
-    }
-  }
+  expect(tier.entryList).toBeDeepCloseTo(entryList);
   expect(tier.minTimestamp).toEqual(minTime);
   expect(tier.maxTimestamp).toBeCloseTo(maxTime);
 }
@@ -99,11 +101,11 @@ test('can build IntervalTiers', () => {
 test('PointTiers and IntervalTiers must have a min and max timestamp', () => {
   expect(() => {
     new IntervalTier('no intervals', []); // eslint-disable-line no-new
-  }).toThrowError("Couldn't create tier: All textgrid tiers must have a min and max duration");
+  }).toThrowError("Couldn't create tier: All textgrid tiers must have a min and max timestamp");
 
   expect(() => {
     new PointTier('no points', []); // eslint-disable-line no-new
-  }).toThrowError("Couldn't create tier: All textgrid tiers must have a min and max duration");
+  }).toThrowError("Couldn't create tier: All textgrid tiers must have a min and max timestamp");
 });
 
 test('addTier adds a tier to a Textgrid', () => {
@@ -183,7 +185,7 @@ test('addTier fails if a tier with the same name already exists in the textgrid'
   }).toThrowError('Tier name speaker 1 already exists in textgrid');
 });
 
-test('can rename tiers', () => {
+test('can rename tiers in a textgrid', () => {
   let tg = getPrefabTextgrid();
   let origName = 'speaker 1';
   let newName = 'Bob';
@@ -194,7 +196,7 @@ test('can rename tiers', () => {
   expect(tg.tierNameList[0]).toEqual(newName);
 });
 
-test('can delete tiers', () => {
+test('can delete tiers in a textgrid', () => {
   let tg = getPrefabTextgrid();
   let tierName = 'speaker 2';
 
@@ -209,7 +211,7 @@ test('can delete tiers', () => {
   expect(Object.keys(tg.tierDict)).not.toContain(tierName);
 });
 
-test('can replace tiers', () => {
+test('can replace tiers in a textgrid', () => {
   let tg = getPrefabTextgrid();
   let newTierName = 'speaker 3';
   let oldTierName = 'speaker 1';
@@ -358,8 +360,7 @@ test('deleting entries from tiers fails if the entry doesnt exist', () => {
 })
 
 test('find() finds matching labels in a tier ', () => {
-  let tg = getPrefabTextgrid();
-  let tier = tg.tierDict['speaker 2'];
+  let tier = getIntervalTier2();
   let matchList
 
   matchList = tier.find('Fred');
@@ -375,8 +376,7 @@ test('find() finds matching labels in a tier ', () => {
 })
 
 test('find() works with partial matches', () => {
-  let tg = getPrefabTextgrid();
-  let tier = tg.tierDict['speaker 2'];
+  let tier = getIntervalTier2();
   let matchList
 
   matchList = tier.find('Fred', 'substr');
@@ -393,8 +393,7 @@ test('find() works with partial matches', () => {
 })
 
 test('find() works with regular expressions', () => {
-  let tg = getPrefabTextgrid();
-  let tier = tg.tierDict['speaker 2'];
+  let tier = getIntervalTier2();
   let matchList
 
   matchList = tier.find('a', 're');
@@ -462,8 +461,7 @@ test('tier.union() merges one tier into another', () => {
 })
 
 test('pointTier.insertEntry works', () => {
-  let tg = getPrefabTextgrid();
-  let pointTier = tg.tierDict['pitch vals'];
+  let pointTier = getPointTier1();
   let newPoint = [1.23, '85'];
 
   expect(pointTier.entryList.length).toEqual(4);
@@ -475,8 +473,7 @@ test('pointTier.insertEntry works', () => {
 test('pointTier.insertEntry can replace existing points with flag', () => {
   let spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
 
-  let tg = getPrefabTextgrid();
-  let pointTier = tg.tierDict['pitch vals'];
+  let pointTier = getPointTier1();
   let oldPoint = pointTier.entryList[0];
   let newPoint = [0.9, '85'];
 
@@ -494,8 +491,7 @@ test('pointTier.insertEntry can replace existing points with flag', () => {
 })
 
 test('pointTier.insertEntry wont replace existing points if not explicitly asked', () => {
-  let tg = getPrefabTextgrid();
-  let pointTier = tg.tierDict['pitch vals'];
+  let pointTier = getPointTier1();
   let newPoint = [0.9, '85'];
 
   expect(() => {
@@ -504,8 +500,7 @@ test('pointTier.insertEntry wont replace existing points if not explicitly asked
 })
 
 test('pointTier.insertEntry can merge into existing points with flag', () => {
-  let tg = getPrefabTextgrid();
-  let pointTier = tg.tierDict['pitch vals'];
+  let pointTier = getPointTier1();
   let oldPoint = pointTier.entryList[0];
   let newPoint = [0.9, '85'];
 
@@ -519,8 +514,7 @@ test('pointTier.insertEntry can merge into existing points with flag', () => {
 })
 
 test('intervalTier.insertEntry works', () => {
-  let tg = getPrefabTextgrid();
-  let intervalTier = tg.tierDict['speaker 1'];
+  let intervalTier = getIntervalTier1();
   let newInterval = [3.20, 3.50, 'maybe'];
 
   expect(intervalTier.entryList.length).toEqual(4);
@@ -532,8 +526,7 @@ test('intervalTier.insertEntry works', () => {
 test('intervalTier.insertEntry can replace existing points with flag', () => {
   let spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
 
-  let tg = getPrefabTextgrid();
-  let intervalTier = tg.tierDict['speaker 1'];
+  let intervalTier = getIntervalTier1();
   let oldPoint = intervalTier.entryList[0];
   let newPoint = [0.73, 0.95, 'Sarah'];
 
@@ -551,8 +544,7 @@ test('intervalTier.insertEntry can replace existing points with flag', () => {
 })
 
 test('intervalTier.insertEntry wont replace existing points if not explicitly asked', () => {
-  let tg = getPrefabTextgrid();
-  let intervalTier = tg.tierDict['speaker 1'];
+  let intervalTier = getIntervalTier1();
   let newInterval = [0.73, 0.95, 'Sarah'];
 
   expect(() => {
@@ -561,8 +553,7 @@ test('intervalTier.insertEntry wont replace existing points if not explicitly as
 })
 
 test('intervalTier.insertEntry can merge into existing points with flag', () => {
-  let tg = getPrefabTextgrid();
-  let intervalTier = tg.tierDict['speaker 1'];
+  let intervalTier = getIntervalTier1();
   let oldPoint1 = intervalTier.entryList[0];
   let oldPoint2 = intervalTier.entryList[1];
 
@@ -581,8 +572,7 @@ test('intervalTier.insertEntry can merge into existing points with flag', () => 
 })
 
 test('pointTier.crop() rebaseToZero sets the the min time to zero', () => {
-  let tg = getPrefabTextgrid();
-  let pointTier = tg.tierDict['pitch vals'];
+  let pointTier = getPointTier1();
   let origEntryList = pointTier.entryList.map(entry => entry.slice());
 
   let oldStart = 0.9;
@@ -615,8 +605,7 @@ test('pointTier.crop() rebaseToZero sets the the min time to zero', () => {
 })
 
 test('intervalTier.crop() rebaseToZero sets the the min time to zero', () => {
-  let tg = getPrefabTextgrid();
-  let intervalTier = tg.tierDict['speaker 1'];
+  let intervalTier = getIntervalTier1();
   let origEntryList = intervalTier.entryList.map(entry => entry.slice());
 
   let oldStart = 0.73;
@@ -740,11 +729,14 @@ test('intervalTier.crop() truncated mode cuts partially contained intervals', ()
 test('textgrid.crop() rebaseToZero sets the the min time to zero', () => {
   let tg = getPrefabTextgrid();
 
+  let oldStart = 0.73;
+  let oldStop = 4.53;
+
   let newStart = 1.1;
   let newStop = 1.5;
 
-  expect(tg.minTimestamp).toEqual(0.73);
-  expect(tg.maxTimestamp).toEqual(4.53);
+  expect(tg.minTimestamp).toEqual(oldStart);
+  expect(tg.maxTimestamp).toEqual(oldStop);
 
   let newTg = tg.crop(1.1, 1.5, 'strict', true);
 
@@ -753,8 +745,7 @@ test('textgrid.crop() rebaseToZero sets the the min time to zero', () => {
 })
 
 test('pointTier.editTimestamps() throws error on overshoot with flag', () => {
-  let tg = getPrefabTextgrid();
-  let tier = tg.tierDict['pitch vals'];
+  let tier = getPointTier1();
 
   expect(() => {
     tier.editTimestamps(100.0, false);
@@ -762,8 +753,7 @@ test('pointTier.editTimestamps() throws error on overshoot with flag', () => {
 })
 
 test('intervalTier.editTimestamps() throws error on overshoot with flag', () => {
-  let tg = getPrefabTextgrid();
-  let tier = tg.tierDict['speaker 1'];
+  let tier = getIntervalTier1();
 
   expect(() => {
     tier.editTimestamps(100.0, false);
