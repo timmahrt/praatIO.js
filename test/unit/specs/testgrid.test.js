@@ -759,3 +759,76 @@ test('intervalTier.editTimestamps() throws error on overshoot with flag', () => 
     tier.editTimestamps(100.0, false);
   }).toThrowError("Attempted to change [0.73,1.02,Ichiro] to [100.73,101.02,Ichiro] in tier 'speaker 1' however, this exceeds the bounds (0.73,1.91).");
 })
+
+test('textgrid.eraseRegion works', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.eraseRegion(1.11, 4.3, false);
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toEqual([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
+  expect(speaker2Tier.entryList).toEqual([[4.3, 4.44, 'caught'], [4.44, 4.53, 'it']]);
+  expect(pitchTier.entryList).toEqual([[0.9, '120'], [1.11, '100']]);
+})
+
+test('textgrid.eraseRegion works with doShrink=true', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.eraseRegion(1.11, 4.3, true);
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toBeDeepCloseTo([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
+  expect(speaker2Tier.entryList).toBeDeepCloseTo([[1.11, 1.25, 'caught'], [1.25, 1.34, 'it']]);
+  expect(pitchTier.entryList).toBeDeepCloseTo([[0.9, '120'], [1.11, '100']]);
+})
+
+test('Can delete the start of a textgrid with textgrid.eraseRegion', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.eraseRegion(0.0, 1.5, false);
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toEqual([[1.5, 1.54, 'a'], [1.54, 1.91, 'homerun']]);
+  expect(speaker2Tier.entryList).toEqual([[3.56, 3.98, 'and'], [3.98, 4.21, 'Fred'], [4.21, 4.44, 'caught'], [4.44, 4.53, 'it']]);
+  expect(pitchTier.entryList).toEqual([[1.79, '95']]);
+})
+
+test('Can delete the start of a textgrid with textgrid.eraseRegion; doShrink=true', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.eraseRegion(0.0, 1.5, true);
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toBeDeepCloseTo([[0, 0.04, 'a'], [0.04, 0.41, 'homerun']]);
+  expect(speaker2Tier.entryList).toBeDeepCloseTo([[2.06, 2.48, 'and'], [2.48, 2.71, 'Fred'], [2.71, 2.94, 'caught'], [2.94, 3.03, 'it']]);
+  expect(pitchTier.entryList).toBeDeepCloseTo([[0.29, '95']]);
+})
+
+test('Can delete the end of a textgrid with textgrid.eraseRegion', () => {
+  let tg = getPrefabTextgrid();
+  let newTg = tg.eraseRegion(1.33, tg.maxTimestamp, false);
+
+  let speaker1Tier = newTg.tierDict['speaker 1'];
+  let speaker2Tier = newTg.tierDict['speaker 2'];
+  let pitchTier = newTg.tierDict['pitch vals'];
+
+  expect(speaker1Tier.entryList).toEqual([[0.73, 1.02, 'Ichiro'], [1.02, 1.231, 'hit']]);
+  expect(speaker2Tier.entryList).toEqual([]);
+  expect(pitchTier.entryList).toEqual([[0.9, '120'], [1.11, '100']]);
+})
+
+test('Deleting the end of a textgrid with textgrid.eraseRegion, there is no differences if doShrink is false or true', () => {
+  let tg = getPrefabTextgrid();
+  let newTg1 = tg.eraseRegion(1.33, tg.maxTimestamp, true);
+  let newTg2 = tg.eraseRegion(1.33, tg.maxTimestamp, false);
+
+  expect(newTg1.equals(newTg2)).toEqual(true);
+})
