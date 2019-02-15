@@ -1,4 +1,10 @@
-import { doIntervalsOverlap, isClose, sortCompareEntriesByTime, entryListToTree, findIntervalAtTime, findPointAtTime } from '../../../utils.js';
+var praatiojs = require('../../../lib');
+var doIntervalsOverlap = praatiojs.utils.doIntervalsOverlap;
+var isClose = praatiojs.utils.isClose;
+var sortCompareEntriesByTime = praatiojs.utils.sortCompareEntriesByTime;
+var entryListToTree = praatiojs.utils.entryListToTree;
+var findIntervalAtTime = praatiojs.utils.findIntervalAtTime;
+var findPointAtTime = praatiojs.utils.findPointAtTime;
 
 test('testing intervals that do and do not overlap', () => {
   // Non-overlapping, A occurs before B

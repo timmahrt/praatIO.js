@@ -1,6 +1,9 @@
 import { toBeDeepCloseTo } from 'jest-matcher-deep-close-to';
 
-import { Textgrid, IntervalTier, PointTier } from '../../../textgrid.js';
+var praatiojs = require('../../../lib');
+var Textgrid = praatiojs.textgrid.Textgrid;
+var IntervalTier = praatiojs.textgrid.IntervalTier;
+var PointTier = praatiojs.textgrid.PointTier;
 
 expect.extend({ toBeDeepCloseTo });
 

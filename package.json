@@ -23,6 +23,12 @@
   "bugs": {
     "url": "https://github.com/timmahrt/praatIO.js/issues"
   },
+  "main": "/lib/index.js",
+  "files": [
+    "/LICENSE",
+    "/README.md",
+    "/lib"
+  ],
   "homepage": "https://github.com/timmahrt/praatIO.js#readme",
   "devDependencies": {
     "balanced-match": "^1.0.0",
