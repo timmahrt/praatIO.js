@@ -34,7 +34,25 @@ function getPointTier1 () {
     [1.41, '110'],
     [1.79, '95']
   ];
-  return new PointTier('pitch vals', points1);
+  return new PointTier('pitch vals 1', points1);
+}
+
+function getPointTier2 () {
+  let points2 = [
+    [3.78, '140'],
+    [4.11, '131'],
+    [4.32, '135'],
+    [4.49, '120']
+  ]
+  return new PointTier('pitch vals 2', points2);
+}
+
+function getPointTier3 () {
+  let points3 = [
+    [2.29, 'Door slam'],
+    [2.99, 'Cough']
+  ]
+  return new PointTier('noises', points3)
 }
 
 function getPrefabTextgrid (tierList = null) {
@@ -44,8 +62,10 @@ function getPrefabTextgrid (tierList = null) {
     let intervalTier1 = getIntervalTier1();
     let intervalTier2 = getIntervalTier2();
     let pitchTier1 = getPointTier1();
+    let pitchTier2 = getPointTier2();
+    let noiseTier = getPointTier3();
 
-    tierList = [intervalTier1, intervalTier2, pitchTier1];
+    tierList = [intervalTier1, intervalTier2, pitchTier1, pitchTier2, noiseTier];
   }
 
   for (let i = 0; i < tierList.length; i++) {
@@ -203,14 +223,14 @@ test('can delete tiers in a textgrid', () => {
   let tg = getPrefabTextgrid();
   let tierName = 'speaker 2';
 
-  expect(tg.tierNameList.length).toEqual(3);
-  expect(Object.keys(tg.tierDict).length).toEqual(3);
+  expect(tg.tierNameList.length).toEqual(5);
+  expect(Object.keys(tg.tierDict).length).toEqual(5);
   expect(Object.keys(tg.tierDict)).toContain(tierName);
 
   tg.removeTier(tierName);
 
-  expect(tg.tierNameList.length).toEqual(2);
-  expect(Object.keys(tg.tierDict).length).toEqual(2);
+  expect(tg.tierNameList.length).toEqual(4);
+  expect(Object.keys(tg.tierDict).length).toEqual(4);
   expect(Object.keys(tg.tierDict)).not.toContain(tierName);
 });
 
@@ -219,8 +239,8 @@ test('can replace tiers in a textgrid', () => {
   let newTierName = 'speaker 3';
   let oldTierName = 'speaker 1';
 
-  expect(tg.tierNameList.length).toEqual(3);
-  expect(Object.keys(tg.tierDict).length).toEqual(3);
+  expect(tg.tierNameList.length).toEqual(5);
+  expect(Object.keys(tg.tierDict).length).toEqual(5);
   expect(Object.keys(tg.tierDict)).toContain(oldTierName);
   expect(Object.keys(tg.tierDict)).not.toContain(newTierName);
 
@@ -233,8 +253,8 @@ test('can replace tiers in a textgrid', () => {
   let intervalTier = new IntervalTier(newTierName, intervals);
   tg.replaceTier(oldTierName, intervalTier);
 
-  expect(tg.tierNameList.length).toEqual(3);
-  expect(Object.keys(tg.tierDict).length).toEqual(3);
+  expect(tg.tierNameList.length).toEqual(5);
+  expect(Object.keys(tg.tierDict).length).toEqual(5);
   expect(Object.keys(tg.tierDict)).not.toContain(oldTierName);
   expect(Object.keys(tg.tierDict)).toContain(newTierName);
 });
@@ -307,7 +327,7 @@ test('can append one point tier to another', () => {
 
 test('cannot append a point tier and interval tier', () => {
   let intervalTier = new IntervalTier('speaker 1', [], 0, 100);
-  let pointTier = new PointTier('pitch vals', [], 0, 100);
+  let pointTier = new PointTier('pitch vals 1', [], 0, 100);
 
   expect(() => {
     intervalTier.appendTier(pointTier); // eslint-disable-line no-new
@@ -488,7 +508,7 @@ test('pointTier.insertEntry can replace existing points with flag', () => {
   expect(pointTier.entryList).not.toContain(oldPoint);
 
   expect(spy).toHaveBeenCalled();
-  expect(spy).toHaveBeenCalledWith("Collision warning for [0.9,85] with items [0.9,120] of tier 'pitch vals'");
+  expect(spy).toHaveBeenCalledWith("Collision warning for [0.9,85] with items [0.9,120] of tier 'pitch vals 1'");
 
   spy.mockRestore();
 })
@@ -499,7 +519,7 @@ test('pointTier.insertEntry wont replace existing points if not explicitly asked
 
   expect(() => {
     pointTier.insertEntry(newPoint);
-  }).toThrowError("Attempted to insert interval [0.9,85] into tier 'pitch vals' of textgrid but overlapping entries [0.9,120] already exist.");
+  }).toThrowError("Attempted to insert interval [0.9,85] into tier 'pitch vals 1' of textgrid but overlapping entries [0.9,120] already exist.");
 })
 
 test('pointTier.insertEntry can merge into existing points with flag', () => {
@@ -752,7 +772,7 @@ test('pointTier.editTimestamps() throws error on overshoot with flag', () => {
 
   expect(() => {
     tier.editTimestamps(100.0, false);
-  }).toThrowError("Attempted to change [0.9,120] to [100.9,120] in tier 'pitch vals' however, this exceeds the bounds (0.9,1.79).");
+  }).toThrowError("Attempted to change [0.9,120] to [100.9,120] in tier 'pitch vals 1' however, this exceeds the bounds (0.9,1.79).");
 })
 
 test('intervalTier.editTimestamps() throws error on overshoot with flag', () => {
@@ -769,7 +789,7 @@ test('textgrid.eraseRegion works', () => {
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toEqual([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
   expect(speaker2Tier.entryList).toEqual([[4.3, 4.44, 'caught'], [4.44, 4.53, 'it']]);
@@ -782,7 +802,7 @@ test('textgrid.eraseRegion works with doShrink=true', () => {
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toBeDeepCloseTo([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
   expect(speaker2Tier.entryList).toBeDeepCloseTo([[1.11, 1.25, 'caught'], [1.25, 1.34, 'it']]);
@@ -795,7 +815,7 @@ test('Can delete the start of a textgrid with textgrid.eraseRegion', () => {
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toEqual([[1.5, 1.54, 'a'], [1.54, 1.91, 'homerun']]);
   expect(speaker2Tier.entryList).toEqual([[3.56, 3.98, 'and'], [3.98, 4.21, 'Fred'], [4.21, 4.44, 'caught'], [4.44, 4.53, 'it']]);
@@ -808,7 +828,7 @@ test('Can delete the start of a textgrid with textgrid.eraseRegion; doShrink=tru
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toBeDeepCloseTo([[0, 0.04, 'a'], [0.04, 0.41, 'homerun']]);
   expect(speaker2Tier.entryList).toBeDeepCloseTo([[2.06, 2.48, 'and'], [2.48, 2.71, 'Fred'], [2.71, 2.94, 'caught'], [2.94, 3.03, 'it']]);
@@ -821,7 +841,7 @@ test('Can delete the end of a textgrid with textgrid.eraseRegion', () => {
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toEqual([[0.73, 1.02, 'Ichiro'], [1.02, 1.231, 'hit']]);
   expect(speaker2Tier.entryList).toEqual([]);
@@ -842,11 +862,11 @@ test('Can textgrid.insertspace into the middle of a textgrid', () => {
 
   let oldSpeaker1Tier = tg.tierDict['speaker 1'];
   let oldSpeaker2Tier = tg.tierDict['speaker 2'];
-  let oldPitchTier = tg.tierDict['pitch vals'];
+  let oldPitchTier = tg.tierDict['pitch vals 1'];
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toEqual(oldSpeaker1Tier.entryList);
   expect(speaker2Tier.entryList).not.toEqual(oldSpeaker2Tier.entryList);
@@ -863,7 +883,7 @@ test('Can textgrid.insertspace into the start of a textgrid', () => {
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toBeDeepCloseTo([[1.23, 1.52, 'Ichiro'], [1.52, 1.731, 'hit'], [1.83, 2.04, 'a'], [2.04, 2.41, 'homerun']]);
   expect(speaker2Tier.entryList).toBeDeepCloseTo([[4.06, 4.48, 'and'], [4.48, 4.71, 'Fred'], [4.71, 4.94, 'caught'], [4.94, 5.03, 'it']]);
@@ -878,11 +898,11 @@ test('Can textgrid.insertspace into the end of a textgrid', () => {
 
   let oldSpeaker1Tier = tg.tierDict['speaker 1'];
   let oldSpeaker2Tier = tg.tierDict['speaker 2'];
-  let oldPitchTier = tg.tierDict['pitch vals'];
+  let oldPitchTier = tg.tierDict['pitch vals 1'];
 
   let speaker1Tier = newTg.tierDict['speaker 1'];
   let speaker2Tier = newTg.tierDict['speaker 2'];
-  let pitchTier = newTg.tierDict['pitch vals'];
+  let pitchTier = newTg.tierDict['pitch vals 1'];
 
   expect(speaker1Tier.entryList).toEqual(oldSpeaker1Tier.entryList);
   expect(speaker2Tier.entryList).toEqual(oldSpeaker2Tier.entryList);
