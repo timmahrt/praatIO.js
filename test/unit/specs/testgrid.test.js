@@ -5,6 +5,8 @@ var Textgrid = praatiojs.textgrid.Textgrid;
 var IntervalTier = praatiojs.textgrid.IntervalTier;
 var PointTier = praatiojs.textgrid.PointTier;
 
+var utils = require('../../../lib/utils.js');
+
 expect.extend({ toBeDeepCloseTo });
 
 function getIntervalTier1 () {
@@ -336,6 +338,94 @@ test('cannot append a point tier and interval tier', () => {
   expect(() => {
     pointTier.appendTier(intervalTier); // eslint-disable-line no-new
   }).toThrowError('Tier types must match when appending tiers.');
+})
+
+test('textgrid.appendTextgrid can append one textgrid to another', () => {
+  let tgA = new Textgrid();
+  let intervalList1a = [[0.8, 1.2, 'blue'], [2.3, 2.56, 'skies']];
+  let pointList1a = [[0.91, 'point 1'], [2.41, 'point 2']];
+  let intervalList2a = [[1.8, 2.4, 'grip'], [2.9, 3.1, 'cheese']];
+  tgA.addTier(new IntervalTier('speaker 1', intervalList1a));
+  tgA.addTier(new PointTier('points 1', pointList1a));
+  tgA.addTier(new IntervalTier('speaker 2', intervalList2a));
+
+  let tgB = new Textgrid();
+  let intervalList1b = [[0.31, 0.52, 'green'], [1.24, 1.91, 'fields']];
+  let pointList1b = [[0.5, 'point 1'], [1.44, 'point 2']];
+  tgB.addTier(new IntervalTier('speaker 1', intervalList1b));
+  tgB.addTier(new PointTier('points 1', pointList1b));
+
+  let combinedTg = tgA.appendTextgrid(tgB, false);
+  let adjustVal = 3.1;
+
+  expect(combinedTg.tierNameList.length).toEqual(3);
+
+  let combinedIntervals = intervalList1a.concat(intervalList1b.map(entry => [entry[0] + adjustVal, entry[1] + adjustVal, entry[2]]));
+  expect(combinedTg.tierDict['speaker 1'].entryList).toBeDeepCloseTo(combinedIntervals);
+
+  let combinedPoints = pointList1a.concat(pointList1b.map(entry => [entry[0] + adjustVal, entry[1]]));
+  expect(combinedTg.tierDict['points 1'].entryList).toBeDeepCloseTo(combinedPoints);
+
+  expect(combinedTg.tierDict['speaker 2'].entryList).toEqual(intervalList2a);
+})
+
+test('textgrid.appendTextgrid can append one textgrid to another (inverted append order)', () => {
+  let tgA = new Textgrid();
+  let intervalList1a = [[0.8, 1.2, 'blue'], [2.3, 2.56, 'skies']];
+  let pointList1a = [[0.91, 'point 1'], [2.41, 'point 2']];
+  let intervalList2a = [[1.8, 2.4, 'grip'], [2.9, 3.1, 'cheese']];
+  tgA.addTier(new IntervalTier('speaker 1', intervalList1a));
+  tgA.addTier(new PointTier('points 1', pointList1a));
+  tgA.addTier(new IntervalTier('speaker 2', intervalList2a));
+
+  let tgB = new Textgrid();
+  let intervalList1b = [[0.31, 0.52, 'green'], [1.24, 1.91, 'fields']];
+  let pointList1b = [[0.5, 'point 1'], [1.44, 'point 2']];
+  tgB.addTier(new IntervalTier('speaker 1', intervalList1b));
+  tgB.addTier(new PointTier('points 1', pointList1b));
+
+  let combinedTg = tgB.appendTextgrid(tgA, false);
+  let adjustVal = 1.91;
+
+  expect(combinedTg.tierNameList.length).toEqual(3);
+
+  let combinedIntervals = intervalList1b.concat(intervalList1a.map(entry => [entry[0] + adjustVal, entry[1] + adjustVal, entry[2]]));
+  expect(combinedTg.tierDict['speaker 1'].entryList).toBeDeepCloseTo(combinedIntervals);
+
+  let combinedPoints = pointList1b.concat(pointList1a.map(entry => [entry[0] + adjustVal, entry[1]]));
+  expect(combinedTg.tierDict['points 1'].entryList).toBeDeepCloseTo(combinedPoints);
+
+  let appendedIntervalList2a = intervalList2a.map(entry => [entry[0] + adjustVal, entry[1] + adjustVal, entry[2]]);
+  expect(combinedTg.tierDict['speaker 2'].entryList).toEqual(appendedIntervalList2a);
+})
+
+test('textgrid.appendTextgrid will only append matching names if asked', () => {
+  let tgA = new Textgrid();
+  let intervalList1a = [[0.8, 1.2, 'blue'], [2.3, 2.56, 'skies']];
+  let pointList1a = [[0.91, 'point 1'], [2.41, 'point 2']];
+  let intervalList2a = [[1.8, 2.4, 'grip'], [2.9, 3.1, 'cheese']];
+  tgA.addTier(new IntervalTier('speaker 1', intervalList1a));
+  tgA.addTier(new PointTier('points 1', pointList1a));
+  tgA.addTier(new IntervalTier('speaker 2', intervalList2a));
+
+  let tgB = new Textgrid();
+  let intervalList1b = [[0.31, 0.52, 'green'], [1.24, 1.91, 'fields']];
+  let pointList1b = [[0.5, 'point 1'], [1.44, 'point 2']];
+  let pointList2b = [[2.1, 'point 3'], [2.33, 'point 4']];
+  tgB.addTier(new IntervalTier('speaker 1', intervalList1b));
+  tgB.addTier(new PointTier('points 1', pointList1b));
+  tgB.addTier(new PointTier('points 2', pointList2b));
+
+  let combinedTg = tgA.appendTextgrid(tgB, true);
+  let adjustVal = 3.1;
+
+  expect(combinedTg.tierNameList.length).toEqual(2);
+
+  let combinedIntervals = intervalList1a.concat(intervalList1b.map(entry => [entry[0] + adjustVal, entry[1] + adjustVal, entry[2]]));
+  expect(combinedTg.tierDict['speaker 1'].entryList).toBeDeepCloseTo(combinedIntervals);
+
+  let combinedPoints = pointList1a.concat(pointList1b.map(entry => [entry[0] + adjustVal, entry[1]]));
+  expect(combinedTg.tierDict['points 1'].entryList).toBeDeepCloseTo(combinedPoints);
 })
 
 test('can delete entries from tiers', () => {
@@ -783,6 +873,21 @@ test('intervalTier.editTimestamps() throws error on overshoot with flag', () => 
   }).toThrowError("Attempted to change [0.73,1.02,Ichiro] to [100.73,101.02,Ichiro] in tier 'speaker 1' however, this exceeds the bounds (0.73,1.91).");
 })
 
+test('textgrid.editTimestamps() can insert time into a textgrid', () => {
+  let tg = getPrefabTextgrid();
+  let adjustAmount = 1.3;
+  let editedTg = tg.editTimestamps(adjustAmount, true);
+
+  let speaker1Edited = tg.tierDict['speaker 1'].entryList.map(entry => [entry[0] + adjustAmount, entry[1] + adjustAmount, entry[2]]);
+  expect(editedTg.tierDict['speaker 1'].entryList).toBeDeepCloseTo(speaker1Edited);
+
+  let pitchVals2Edited = tg.tierDict['pitch vals 2'].entryList.map(entry => [entry[0] + adjustAmount, entry[1]]);
+  expect(editedTg.tierDict['pitch vals 2'].entryList).toBeDeepCloseTo(pitchVals2Edited);
+
+  expect(editedTg.minTimestamp).toBe(tg.minTimestamp);
+  expect(editedTg.maxTimestamp).toBe(tg.maxTimestamp + adjustAmount);
+})
+
 test('textgrid.eraseRegion works', () => {
   let tg = getPrefabTextgrid();
   let newTg = tg.eraseRegion(1.11, 4.3, false);
@@ -794,6 +899,9 @@ test('textgrid.eraseRegion works', () => {
   expect(speaker1Tier.entryList).toEqual([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
   expect(speaker2Tier.entryList).toEqual([[4.3, 4.44, 'caught'], [4.44, 4.53, 'it']]);
   expect(pitchTier.entryList).toEqual([[0.9, '120'], [1.11, '100']]);
+
+  expect(newTg.minTimestamp).toEqual(tg.minTimestamp);
+  expect(newTg.maxTimestamp).toEqual(newTg.maxTimestamp);
 })
 
 test('textgrid.eraseRegion works with doShrink=true', () => {
@@ -807,6 +915,9 @@ test('textgrid.eraseRegion works with doShrink=true', () => {
   expect(speaker1Tier.entryList).toBeDeepCloseTo([[0.73, 1.02, 'Ichiro'], [1.02, 1.11, 'hit']]);
   expect(speaker2Tier.entryList).toBeDeepCloseTo([[1.11, 1.25, 'caught'], [1.25, 1.34, 'it']]);
   expect(pitchTier.entryList).toBeDeepCloseTo([[0.9, '120'], [1.11, '100']]);
+
+  expect(newTg.minTimestamp).toEqual(tg.minTimestamp);
+  expect(newTg.maxTimestamp).toBeCloseTo(tg.maxTimestamp - (4.3 - 1.11));
 })
 
 test('Can delete the start of a textgrid with textgrid.eraseRegion', () => {
@@ -848,12 +959,19 @@ test('Can delete the end of a textgrid with textgrid.eraseRegion', () => {
   expect(pitchTier.entryList).toEqual([[0.9, '120'], [1.11, '100']]);
 })
 
-test('Deleting the end of a textgrid with textgrid.eraseRegion, there is no differences if doShrink is false or true', () => {
+test('Deleting the end of a textgrid with textgrid.eraseRegion, there is no differences in entryLists if doShrink is false or true', () => {
   let tg = getPrefabTextgrid();
   let newTg1 = tg.eraseRegion(1.33, tg.maxTimestamp, true);
   let newTg2 = tg.eraseRegion(1.33, tg.maxTimestamp, false);
 
-  expect(newTg1.equals(newTg2)).toEqual(true);
+  expect(newTg1.entryList).toEqual(newTg2.entryList);
+})
+
+test('The wrong collision code with intervalTier.eraseRegion throws an error', () => {
+  let tier = getIntervalTier1();
+  expect(() => {
+    tier.eraseRegion(0, 1, true, null); // eslint-disable-line no-new
+  }).toThrowError("Expected value 'null' to be one value in [strict,truncated].");
 })
 
 test('Can textgrid.insertspace into the middle of a textgrid', () => {
@@ -947,4 +1065,122 @@ test('textgrid.insertspace, with collisionCode="no change", does not affect conf
   let newTg2 = tg.insertSpace(1.54, 1.0, 'no change');
 
   expect(newTg1.equals(newTg2)).toEqual(true);
+})
+
+test('textgrid.mergeTiers works', () => {
+  let tg = getPrefabTextgrid();
+  let mergedTg = tg.mergeTiers();
+
+  let allIntervalsList = tg.tierDict['speaker 1'].entryList;
+  allIntervalsList = allIntervalsList.concat(tg.tierDict['speaker 2'].entryList);
+
+  let allPointsList = tg.tierDict['pitch vals 1'].entryList;
+  allPointsList = allPointsList.concat(tg.tierDict['pitch vals 2'].entryList);
+  allPointsList = allPointsList.concat(tg.tierDict['noises'].entryList);
+  allPointsList.sort(utils.sortCompareEntriesByTime);
+
+  expect(mergedTg.tierNameList.length).toEqual(2);
+  expect(mergedTg.tierDict['merged intervals'].entryList).toBeDeepCloseTo(allIntervalsList);
+  expect(mergedTg.tierDict['merged points'].entryList).toBeDeepCloseTo(allPointsList);
+})
+
+test('textgrid.mergeTiers, can choose which tiers to merge', () => {
+  let tg = getPrefabTextgrid();
+  let tierNameList = [0, 1, 2, 3].map(num => tg.tierNameList[num]);
+  let mergedTg = tg.mergeTiers(tierNameList, true);
+
+  let allIntervalsList = tg.tierDict['speaker 1'].entryList;
+  allIntervalsList = allIntervalsList.concat(tg.tierDict['speaker 2'].entryList);
+
+  let allPointsList = tg.tierDict['pitch vals 1'].entryList;
+  allPointsList = allPointsList.concat(tg.tierDict['pitch vals 2'].entryList);
+
+  expect(mergedTg.tierNameList.length).toEqual(3);
+  expect(mergedTg.tierDict['merged intervals'].entryList).toBeDeepCloseTo(allIntervalsList);
+  expect(mergedTg.tierDict['merged points'].entryList).toBeDeepCloseTo(allPointsList);
+  expect(mergedTg.tierDict['noises'].entryList).toEqual(tg.tierDict['noises'].entryList);
+})
+
+test('intervalTier.intersection does the set intersection of the two tiers', () => {
+  let entryListA = [[0.5, 1.0, '1a'], [1.23, 1.44, '2a'], [1.95, 2.05, '3a']];
+  let entryListB = [[0.1, 0.4, '1b'], [1.23, 1.44, '2b'], [1.5, 1.8, '3b'], [2.00, 2.43, '4b']];
+  let tier1 = new IntervalTier('TierA', entryListA);
+  let tier2 = new IntervalTier('TierB', entryListB);
+  let intersectTier = tier1.intersection(tier2);
+
+  // Only overlapping entries are kept; partially overlapping entries will
+  // only include the overlapping portion
+  let intersectionEntryList = [[1.23, 1.44, '2a-2b'], [2.00, 2.05, '3a-4b']];
+  expect(intersectTier.name).toEqual('TierA-TierB');
+  expect(intersectTier.entryList).toBeDeepCloseTo(intersectionEntryList);
+})
+
+test('intervalTier.difference takes the set difference with another tier', () => {
+  let entryListA = [[0.5, 1.0, '1a'], [1.23, 1.44, '2a'], [1.95, 2.05, '3a']];
+  let entryListB = [[0.1, 0.7, '1b'], [1.3, 1.35, '2b'], [1.5, 1.8, '3b'], [2.00, 2.43, '4b']];
+  let tierA = new IntervalTier('TierA', entryListA);
+  let tierB = new IntervalTier('TierB', entryListB);
+  let differenceTier = tierA.difference(tierB);
+
+  // Only overlapping entries are kept; partially overlapping entries will
+  // only include the overlapping portion
+  let differenceEntryList = [[0.7, 1.0, '1a'], [1.23, 1.3, '2a'], [1.35, 1.44, '2a'], [1.95, 2.00, '3a']];
+  expect(differenceTier.name).toEqual('TierA');
+  expect(differenceTier.entryList).toBeDeepCloseTo(differenceEntryList);
+})
+
+test('intervalTier.getNonEntries returns empty regions of the tier', () => {
+  let entryList = [[0.5, 1.0, '1'], [1.23, 1.45, '2'], [1.45, 1.5, '3'], [1.6, 1.72, '4']];
+  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  let nonEntryList = [[0, 0.5, ''], [1.0, 1.23, ''], [1.5, 1.6, ''], [1.72, 2.0, '']];
+
+  let actualNonEntryList = tier.getNonEntries();
+  expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
+})
+
+test('intervalTier.getNonEntries works for tier with just one entry', () => {
+  let entryList = [[0.73, 1.2, 'cat']];
+  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  let nonEntryList = [[0, 0.73, ''], [1.2, 2.0, '']];
+
+  let actualNonEntryList = tier.getNonEntries();
+  expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
+})
+
+test('intervalTier.getNonEntries works for tier with no blank spot at the beginning or end', () => {
+  let entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
+  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  let nonEntryList = [[0.6, 0.8, ''], [0.9, 1.2, '']];
+
+  let actualNonEntryList = tier.getNonEntries();
+  expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
+})
+
+test('intervalTier.getNonEntries returns whole interval for empty tier', () => {
+  let entryList = [];
+  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  let nonEntryList = [[0, 2.0, '']];
+
+  let actualNonEntryList = tier.getNonEntries();
+  expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
+})
+
+test('intervalTier.getValuesInIntervals works', () => {
+  let entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
+  let pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
+  let expectedResult = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.83, 'f'], [1.26, 'j'], [1.99, 'k']];
+  let tier = new IntervalTier('Speaker 1', entryList);
+
+  let containedValues = tier.getValuesInIntervals(pointList);
+  expect(containedValues).toBeDeepCloseTo(expectedResult);
+})
+
+test('intervalTier.getValuesAtPoints works', () => {
+  let pointEntryList = [[0.1, '1'], [0.6, '2'], [0.8, '3'], [0.83, '4'], [1.09, '5'], [1.11, '6'], [1.33, '7']];
+  let pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
+  let expectedResult = [[0.1, 'a'], [0.6, 'c'], [0.83, 'f'], [1.09, 'h']];
+  let tier = new PointTier('Pitch vals 1', pointEntryList);
+
+  let containedValues = tier.getValuesAtPoints(pointList, false);
+  expect(containedValues).toBeDeepCloseTo(expectedResult);
 })
