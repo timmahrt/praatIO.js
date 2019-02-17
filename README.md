@@ -103,7 +103,7 @@ to 'pivot' from.
 
 ### Methods
 
-Here is a short summary of the provided functions.  Please see the documentation for details.
+Here is a short summary of the provided functions.  Please see the documentation for details: [praatIO jsdocs page](http://timmahrt.github.io/praatIO.js/)
 
 The main data structures
 
