@@ -37,15 +37,16 @@ Ver 0.0 (June 06, 2015)
 - Handles both point tiers and interval tiers
 
 
-## Requirements
-
-None
-
-
 ## Installation
 
 `npm install praatio`
 
+
+## Documentation
+
+Generated JSdocs can be found here:
+
+[praatIO jsdocs page](http://timmahrt.github.io/praatIO.js/)
 
 ## Usage / Before Getting Started
 
