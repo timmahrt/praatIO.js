@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: textgrid_modifiers.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: textgrid_modifiers.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * This module contains the methods that take one or more
+ * tiers or textgrids and returns a modified result.&lt;br />&lt;br />
+ *
+ * @author Tim Mahrt
+ * @since March 25, 2015
+ * @module textgrid_modifiers
+ */
+
+import {
+  Textgrid, IntervalTier, PointTier,
+  copyTier
+} from './textgrid';
+
+class NonMatchingTiersException extends Error {};
+
+class OvershootModificationException extends Error {
+  constructor (tierName, oldEntry, newEntry, min, max, ...args) {
+    super(...args);
+    this.tierName = tierName;
+    this.oldEntry = oldEntry;
+    this.newEntry = newEntry;
+    this.min = min;
+    this.max = max;
+    this.message = `Attempted to change [${oldEntry}] to [${newEntry}] in tier '${tierName}' however, this exceeds the bounds (${min},${max}).`;
+  }
+};
+
+class IncorrectArgumentException extends Error {
+  constructor (value, targetValueList, ...args) {
+    super(...args);
+    this.value = value;
+    this.targetValueList = targetValueList;
+    this.message = `Expected value '${this.value}' to be one value in [${this.targetValueList}].`
+  }
+}
+
+/**
+ * Append one textgrid to the end of this one
+ * @param {Textgrid} tg1 - the source textgrid
+ * @param {Textgrid} tg2 - the textgrid to add on
+ * @param {boolean} [onlyMatchingNames=true] - only include tiers that appear in both textgrids
+ * @return {Textgrid}
+ */
+function appendTextgrid (tg1, tg2, onlyMatchingNames = true) {
+  // Get all tier names with no duplicates.  Ordered first by
+  // this textgrid and then by the other textgrid.
+  let combinedTierNameList = tg1.tierNameList.slice(0);
+  for (let i = 0; i &lt; tg2.tierNameList.length; i++) {
+    let tierName = tg2.tierNameList[i];
+    if (!combinedTierNameList.includes(tierName)) {
+      combinedTierNameList.push(tierName);
+    }
+  }
+
+  // Determine the tier names that will be in the final textgrid
+  let finalTierNameList = [];
+  if (onlyMatchingNames === false) {
+    finalTierNameList = combinedTierNameList;
+  }
+  else {
+    for (let i = 0; i &lt; tg2.tierNameList.length; i++) {
+      let tierName = tg2.tierNameList[i];
+      if (tg1.tierNameList.includes(tierName) &amp;&amp; tg2.tierNameList.includes(tierName)) {
+        finalTierNameList.push(tierName);
+      }
+    }
+  }
+
+  // Add tiers from this textgrid
+  let retTg = new Textgrid();
+  let minTimestamp = tg1.minTimestamp
+  let maxTimestamp = tg1.maxTimestamp + tg2.maxTimestamp
+  for (let i = 0; i &lt; finalTierNameList.length; i++) {
+    let tierName = finalTierNameList[i];
+    if (!tg1.tierNameList.includes(tierName)) continue;
+
+    let tier = tg1.tierDict[tierName];
+    tier = copyTier(tier, { 'minTimestamp': minTimestamp, 'maxTimestamp': maxTimestamp });
+    retTg.addTier(tier);
+  }
+
+  // Add tiers from the other textgrid
+  for (let i = 0; i &lt; finalTierNameList.length; i++) {
+    let tierName = finalTierNameList[i];
+    if (!tg2.tierNameList.includes(tierName)) continue;
+
+    let tier = tg2.tierDict[tierName];
+    tier = copyTier(tier, { 'minTimestamp': minTimestamp, 'maxTimestamp': maxTimestamp });
+    tier = editTierTimestamps(tier, tg1.maxTimestamp);
+
+    if (!retTg.tierNameList.includes(tierName)) {
+      retTg.addTier(tier);
+    }
+    else {
+      let combinedTier = retTg.tierDict[tierName];
+      let combinedEntryList = combinedTier.entryList;
+      combinedEntryList = combinedEntryList.concat(tier.entryList);
+
+      combinedTier = copyTier(combinedTier, { 'entryList': combinedEntryList });
+      retTg.replaceTier(tierName, combinedTier);
+    }
+  }
+  return retTg;
+}
+
+/**
+ * Add one tier to the end of another
+ * @param {TextgridTier} tier1 - the base tier
+ * @param {TextgridTier} tier2 - the tier to add
+ * @return {TextgridTier}
+ */
+function appendTier (tier1, tier2) {
+  if (tier1.tierType !== tier2.tierType) {
+    throw new NonMatchingTiersException('Tier types must match when appending tiers.');
+  }
+  let minTime = tier1.minTimestamp;
+  let maxTime = tier1.maxTimestamp + tier2.maxTimestamp;
+
+  let appendTier = editTierTimestamps(tier2, tier1.maxTimestamp, true);
+  let entryList = tier1.entryList.concat(appendTier.entryList);
+
+  return copyTier(
+    tier1,
+    { name: tier1.name,
+      entryList: entryList,
+      minTimestamp: minTime,
+      maxTimestamp: maxTime
+    }
+  );
+}
+
+/**
+ * Creates a textgrid that only contains intervals from the crop region
+ * @param {Textgrid} tg
+ * @param {number} cropStart
+ * @param {number} cropEnd
+ * @param {string} mode - one of 'strict', 'lax', or 'truncated'
+ *  If 'strict', only intervals wholly contained by the crop interval will be kept.
+ *  If 'lax', partially contained intervals will be kept.
+ *  If 'truncated', partially contained intervals will be truncated to fit within the crop region.
+ * @param {boolean} rebaseToZero - if true, the all times in entries will be subtracted by the cropStart
+ * @return {Textgrid} A new textgrid containing only entries that appear in the crop region.
+ */
+function cropTextgrid (tg, cropStart, cropEnd, mode, rebaseToZero) {
+  let newTG = new Textgrid();
+
+  let minT = cropStart;
+  let maxT = cropEnd;
+  if (rebaseToZero === true) {
+    minT = 0;
+    maxT = cropEnd - cropStart;
+  }
+
+  newTG.minTimestamp = minT;
+  newTG.maxTimestamp = maxT;
+  for (let i = 0; i &lt; tg.tierNameList.length; i++) {
+    let tierName = tg.tierNameList[i];
+    let tier = tg.tierDict[tierName];
+    let newTier = cropTier(tier, cropStart, cropEnd, mode, rebaseToZero);
+    newTG.addTier(newTier);
+  }
+
+  return newTG;
+}
+
+/**
+ * Creates a new tier containing only entries from inside the crop interval
+ * @param {TextgridTier} tier
+ * @param {number} cropStart
+ * @param {number} cropEnd
+ * @param {string} mode - mode is ignored.  This parameter is kept for compatibility with IntervalTier.crop()
+ * @param {boolean} rebaseToZero - if true, all times will be subtracted by cropStart
+ * @return {TextgridTier} Returns a copy of this tier with only values from the crop region.
+ */
+function cropTier (tier, cropStart, cropEnd, mode, rebaseToZero) {
+  let croppedTier;
+  if (tier instanceof PointTier) {
+    croppedTier = cropPointTier(tier, cropStart, cropEnd, mode, rebaseToZero);
+  }
+  else if (tier instanceof IntervalTier) {
+    croppedTier = cropIntervalTier(tier, cropStart, cropEnd, mode, rebaseToZero);
+  }
+  return croppedTier;
+}
+
+/**
+ * Creates a new tier containing only entries from inside the crop interval
+ * @param {PointTier} pointTier
+ * @param {number} cropStart
+ * @param {number} cropEnd
+ * @param {string} mode - mode is ignored.  This parameter is kept for compatibility with IntervalTier.crop()
+ * @param {boolean} rebaseToZero - if true, all times will be subtracted by cropStart
+ * @return {PointTier} Returns a copy of this tier with only values from the crop region.
+ */
+function cropPointTier (pointTier, cropStart, cropEnd, mode, rebaseToZero) {
+  let newEntryList = [];
+
+  for (let i = 0; i &lt; pointTier.entryList.length; i++) {
+    let timestamp = pointTier.entryList[i][0];
+    if (timestamp >= cropStart &amp;&amp; timestamp &lt;= cropEnd) newEntryList.push(pointTier.entryList[i]);
+  }
+
+  let minT = cropStart;
+  let maxT = cropEnd;
+  if (rebaseToZero === true) {
+    newEntryList = newEntryList.map(entry => [entry[0] - cropStart, entry[1]]);
+    minT = 0;
+    maxT = cropEnd - cropStart;
+  }
+
+  let subTier = new PointTier(pointTier.name, newEntryList, minT, maxT);
+  return subTier;
+}
+
+/**
+ * Creates a new tier with only the entries from the crop region
+ * @param {number} cropStart
+ * @param {number} cropEnd
+ * @param {string} number - one of 'strict', 'lax', or 'truncated'
+    If 'strict', only intervals wholly contained by the crop interval will be kept.
+    If 'lax', partially contained intervals will be kept.
+    If 'truncated', partially contained intervals will be
+        truncated to fit within the crop region.
+ * @param {boolean} rebaseToZero - if true the cropped textgrid values will be subtracted by cropStart
+ * @return {Textgrid} A copy of this tier with only entries from the crop region
+ */
+function cropIntervalTier (intervalTier, cropStart, cropEnd, mode, rebaseToZero) {
+  let newEntryList = [];
+  for (let i = 0; i &lt; intervalTier.entryList.length; i++) {
+    let entry = intervalTier.entryList[i];
+    let matchedEntry = null;
+
+    let intervalStart = entry[0];
+    let intervalEnd = entry[1];
+    let intervalLabel = entry[2];
+
+    // Don't need to investigate if the interval is before or after
+    // the crop region
+    if (intervalEnd &lt;= cropStart || intervalStart >= cropEnd) continue;
+
+    // Determine if the current subEntry is wholly contained
+    // within the superEntry
+    if (intervalStart >= cropStart &amp;&amp; intervalEnd &lt;= cropEnd) {
+      matchedEntry = entry;
+    }
+
+    // If it is only partially contained within the superEntry AND
+    // inclusion is 'lax', include it anyways
+    else if (mode === 'lax' &amp;&amp; (intervalStart >= cropStart || intervalEnd &lt;= cropEnd)) {
+      matchedEntry = entry;
+    }
+
+    // If not strict, include partial tiers on the edges
+    // -- regardless, record how much information was lost
+    //        - for strict=true, the total time of the cut interval
+    //        - for strict=false, the portion of the interval that lies
+    //            outside the new interval
+
+    // The current interval straddles the end of the new interval
+    else if (intervalStart >= cropStart &amp;&amp; intervalEnd > cropEnd) {
+      if (mode === 'truncated') {
+        matchedEntry = [intervalStart, cropEnd, intervalLabel];
+      }
+    }
+
+    // The current interval straddles the start of the new interval
+    else if (intervalStart &lt; cropStart &amp;&amp; intervalEnd &lt;= cropEnd) {
+      if (mode === 'truncated') {
+        matchedEntry = [cropStart, intervalEnd, intervalLabel];
+      }
+    }
+
+    // The current interval contains the new interval completely
+    else if (intervalStart &lt;= cropStart &amp;&amp; intervalEnd >= cropEnd) {
+      if (mode === 'lax') {
+        matchedEntry = entry;
+      } else if (mode === 'truncated') {
+        matchedEntry = [cropStart, cropEnd, intervalLabel];
+      }
+    }
+
+    if (matchedEntry !== null) {
+      newEntryList.push(matchedEntry);
+    }
+  }
+
+  let minT = cropStart;
+  let maxT = cropEnd;
+  if (rebaseToZero === true) {
+    newEntryList = newEntryList.map(entryList => [entryList[0] - cropStart,
+      entryList[1] - cropStart,
+      entryList[2]
+    ]);
+    minT = 0;
+    maxT = cropEnd - cropStart;
+  }
+
+  // Create subtier
+  let croppedTier = new IntervalTier(intervalTier.name, newEntryList, minT, maxT);
+
+  return croppedTier;
+}
+
+/**
+ * Modifies all timestamps in the Textgrid and in the contained tiers by a constant amount
+ * @param {Textgrid} tg
+ * @param {number} offset - the amount to modify all timestamps by
+ * @param {boolean} [allowOvershoot=false] - if false and offset pushes a value past maxTimestamp, throw an error; otherwise, lengthen the textgrid
+ * @return {Textgrid}
+ */
+function editTextgridTimestamps (tg, offset, allowOvershoot = false) {
+  let editedTg = new Textgrid();
+  for (let i = 0; i &lt; tg.tierNameList.length; i++) {
+    let tier = tg.tierDict[tg.tierNameList[i]];
+    tier = editTierTimestamps(tier, offset, allowOvershoot);
+    editedTg.addTier(tier);
+  }
+  return editedTg;
+}
+
+/**
+ * Modifies all timestamps by a constant amount
+ * @param {TextgridTier} tier
+ * @param {number} offset
+ * @param {boolean} [allowOvershoot=false] - if false and offset pushes a value past maxTimestamp, throw an error; otherwise, lengthen the tier
+ * @return {TextgridTier}
+ */
+function editTierTimestamps (tier, offset, allowOvershoot = false) {
+  let editedTier;
+  if (tier instanceof PointTier) {
+    editedTier = editPointTierTimestamps(tier, offset, allowOvershoot);
+  }
+  else if (tier instanceof IntervalTier) {
+    editedTier = editIntervalTierTimestamps(tier, offset, allowOvershoot);
+  }
+  return editedTier;
+}
+
+function editPointTierTimestamps (pointTier, offset, allowOvershoot = false) {
+  let newEntryList = []
+  for (let i = 0; i &lt; pointTier.entryList.length; i++) {
+    let entry = pointTier.entryList[i];
+    let newTime = entry[0] + offset;
+    let newEntry = [newTime, entry[1]];
+
+    if (allowOvershoot === false) {
+      if (newTime &lt; pointTier.minTimestamp || newTime > pointTier.maxTimestamp) {
+        throw new OvershootModificationException(pointTier.name, entry, newEntry, pointTier.minTimestamp, pointTier.maxTimestamp);
+      }
+    }
+
+    newEntryList.push(newEntry);
+  }
+
+  let newTimeList = newEntryList.map(entry => entry[0]);
+  let newMin = Math.min(...newTimeList);
+  let newMax = Math.max(...newTimeList);
+
+  if (pointTier.minTimestamp &lt; newMin) newMin = pointTier.minTimestamp;
+  if (pointTier.maxTimestamp > newMax) newMax = pointTier.maxTimestamp;
+
+  return new PointTier(pointTier.name, newEntryList, newMin, newMax);
+}
+
+function editIntervalTierTimestamps (intervalTier, offset, allowOvershoot = false) {
+  let newEntryList = []
+  for (let i = 0; i &lt; intervalTier.entryList.length; i++) {
+    let entry = intervalTier.entryList[i];
+    let newStart = entry[0] + offset;
+    let newStop = entry[1] + offset;
+    let newEntry = [newStart, newStop, entry[2]];
+
+    if (allowOvershoot === false) {
+      if (newStart &lt; intervalTier.minTimestamp || newStop > intervalTier.maxTimestamp) {
+        throw new OvershootModificationException(intervalTier.name, entry, newEntry, intervalTier.minTimestamp, intervalTier.maxTimestamp);
+      }
+    }
+
+    newEntryList.push(newEntry);
+  }
+
+  let newMin = Math.min(...newEntryList.map(entry => entry[0]));
+  let newMax = Math.max(...newEntryList.map(entry => entry[1]));
+
+  if (intervalTier.minTimestamp &lt; newMin) newMin = intervalTier.minTimestamp;
+  if (intervalTier.maxTimestamp > newMax) newMax = intervalTier.maxTimestamp;
+
+  return new IntervalTier(intervalTier.name, newEntryList, newMin, newMax);
+}
+
+/**
+ * Makes a region in all tiers blank (removes all contained entries)
+ * @param {TextgridTier} tg
+ * @param {number} start
+ * @param {number} stop
+ * @param {boolean} doShrink - if true, all values after the erase region will be shifted earlier in time by (stop - start) seconds
+ * @return {TextgridTier} A copy of this textgrid without entries in the specified region.
+ */
+function eraseRegionFromTextgrid (tg, start, stop, doShrink) {
+  let duration = stop - start;
+  let maxTimestamp = tg.maxTimestamp;
+  if (doShrink === true) maxTimestamp -= duration;
+
+  let newTg = new Textgrid();
+  newTg.minTimestamp = tg.minTimestamp;
+  newTg.maxTimestamp = maxTimestamp;
+  for (let i = 0; i &lt; tg.tierNameList.length; i++) {
+    let tier = tg.tierDict[tg.tierNameList[i]];
+    tier = eraseRegionFromTier(tier, start, stop, doShrink, 'truncated');
+    newTg.addTier(tier);
+  }
+  return newTg;
+}
+
+/**
+ * Makes a region in a tier blank (removes all contained entries)
+ * @param {TextgridTier} tier
+ * @param {number} start
+ * @param {number} stop
+ * @param {boolean} doShrink - if true, all values after the erase region will be shifted earlier in time by (stop - start) seconds
+ * @return {TextgridTier} A copy of this tier without entries in the specified region.
+ */
+function eraseRegionFromTier (tier, start, stop, doShrink, collisionCode) {
+  let retTier;
+
+  let codeList = ['strict', 'truncated'];
+  if (!codeList.includes(collisionCode)) {
+    throw new IncorrectArgumentException(collisionCode, codeList);
+  }
+
+  // erase region is in the middle of the textgrid
+  if (start > tier.minTimestamp &amp;&amp; stop &lt; tier.maxTimestamp) {
+    let leftCrop = cropTier(tier, tier.minTimestamp, start, collisionCode, false);
+
+    if (doShrink === true) {
+      let rightCrop = cropTier(tier, stop, tier.maxTimestamp, collisionCode, true);
+      retTier = appendTier(leftCrop, rightCrop);
+    }
+    else {
+      let rightCrop = cropTier(tier, stop, tier.maxTimestamp, collisionCode, false);
+      retTier = takeTierUnion(leftCrop, rightCrop);
+    }
+  }
+  // erase region is either at the start or end of the textgrid
+  else {
+    if (start > tier.minTimestamp &amp;&amp; stop >= tier.maxTimestamp) {
+      retTier = cropTier(tier, tier.minTimestamp, start, collisionCode, false);
+    }
+    else if (start &lt;= tier.minTimestamp &amp;&amp; stop &lt; tier.maxTimestamp) {
+      retTier = cropTier(tier, stop, tier.maxTimestamp, collisionCode, false);
+      if (doShrink === true) {
+        retTier = editTierTimestamps(retTier, -1 * stop, true);
+      }
+    }
+    else {
+      retTier = copyTier(tier, { 'entryList': [] });
+    }
+  }
+
+  if (doShrink !== true) {
+    retTier.minTimestamp = tier.minTimestamp;
+    retTier.maxTimestamp = tier.maxTimestamp;
+  }
+  return retTier;
+}
+
+/**
+ * Inserts a blank region into a textgrid
+ * @param {Textgrid} tg
+ * @param {number} start
+ * @param {number} duration - Note: every item that occurs after /start/ will be pushed back by /duration/ seconds.
+ * @param {boolean} collisionCode - if /start/ occurs inside a labeled interval, this determines the behaviour.
+ *  Must be one of 'stretch', 'split', or 'no change'
+ *  'stretch' - stretches the interval by /duration/ amount
+ *  'split' - splits the interval into two--everything to the
+            right of 'start' will be advanced by 'duration' seconds
+ *  'no change' - leaves the interval as is with no change
+ * @return {Textgrid} A copy of this textgrid with the inserted blank region.
+ */
+function insertSpaceIntoTextgrid (tg, start, duration, collisionCode) {
+  let newTg = new Textgrid();
+  newTg.minTimestamp = tg.minTimestamp;
+  newTg.maxTimestamp = tg.maxTimestmap + duration;
+
+  for (let i = 0; i &lt; tg.tierNameList.length; i++) {
+    let tier = tg.tierDict[tg.tierNameList[i]];
+    tier = insertSpaceIntoTier(tier, start, duration, collisionCode);
+    newTg.addTier(tier);
+  }
+
+  return newTg;
+}
+
+/**
+ * Inserts a blank region into a tier
+ * @param {TextgridTier} tier
+ * @param {number} start
+ * @param {number} duration - Note: every item that occurs after /start/ will be pushed back by /duration/ seconds.
+ * @param {boolean} collisionCode - (unused parameter for point tiers) if /start/ occurs inside a labeled interval, this determines the behaviour.
+ *  Must be one of 'stretch', 'split', or 'no change'
+ *  'stretch' - stretches the interval by /duration/ amount
+ *  'split' - splits the interval into two--everything to the
+            right of 'start' will be advanced by 'duration' seconds
+ *  'no change' - leaves the interval as is with no change
+ * @return {TextgridTier} A copy of this tier with the inserted blank region.
+ */
+function insertSpaceIntoTier (tier, start, duration, collisionCode) {
+  let lengthenedTier;
+  if (tier instanceof PointTier) {
+    lengthenedTier = insertSpaceIntoPointTier(tier, start, duration, collisionCode);
+  }
+  else if (tier instanceof IntervalTier) {
+    lengthenedTier = insertSpaceIntoIntervalTier(tier, start, duration, collisionCode);
+  }
+  return lengthenedTier;
+}
+
+function insertSpaceIntoPointTier (pointTier, start, duration, collisionCode) {
+  let newEntryList = [];
+  for (let i = 0; i &lt; pointTier.entryList.length; i++) {
+    let entry = pointTier.entryList[i];
+    if (entry[0] &lt;= start) {
+      newEntryList.push(entry);
+    }
+    else if (entry[0] > start) {
+      newEntryList.push([entry[0] + duration, entry[1]])
+    }
+  }
+
+  return copyTier(pointTier, { 'entryList': newEntryList, 'maxTimestamp': pointTier.maxTimestamp + duration })
+}
+
+function insertSpaceIntoIntervalTier (intervalTier, start, duration, collisionCode) {
+  let codeList = ['stretch', 'split', 'no change']
+  if (!codeList.includes(collisionCode)) {
+    throw new IncorrectArgumentException(collisionCode, codeList);
+  }
+
+  let newEntryList = [];
+  for (let i = 0; i &lt; intervalTier.entryList.length; i++) {
+    let [entryStart, entryStop, label] = intervalTier.entryList[i];
+    if (entryStop &lt;= start) {
+      newEntryList.push([entryStart, entryStop, label])
+    }
+    else if (entryStart >= start) {
+      newEntryList.push([entryStart + duration, entryStop + duration, label])
+    }
+    else if (entryStart &lt;= start &amp;&amp; entryStop > start) {
+      if (collisionCode === 'stretch') {
+        newEntryList.push([entryStart, entryStop + duration, label])
+      }
+      else if (collisionCode === 'split') {
+        newEntryList.push([entryStart, start, label])
+        newEntryList.push([start + duration, start + duration + (entryStop - start), label])
+      }
+      else if (collisionCode === 'no change') {
+        newEntryList.push([entryStart, entryStop, label])
+      }
+    }
+  }
+
+  return copyTier(intervalTier, { 'entryList': newEntryList, 'maxTimestamp': intervalTier.maxTimestamp + duration })
+}
+
+/**
+ * Combine tiers in a textgrid.
+ * @param {Textgrid} tg
+ * @param {Array} [tierNameList=null] - The list of tier names to include in the merge.  If null, all tiers are merged.
+ * @param {boolean} [preserveOtherTiers=true] - If true, keep tiers that were not merged.
+ *  If false, the return textgrid will only have one merged tier for all interval tiers and one merged tier for all point tiers, if present.
+ * @param {string} [intervalTierName='merged intervals']
+ * @param {string} [pointTierName='merged points']
+ * @return {Textgrid} A copy of the textgrid with the specified tiers merged.
+ */
+function mergeTextgridTiers (tg, tierNameList = null, preserveOtherTiers = true, intervalTierName = 'merged intervals', pointTierName = 'merged points') {
+  if (tierNameList === null) {
+    tierNameList = tg.tierNameList;
+  }
+
+  // Determine the tiers to merge
+  let intervalTierNameList = [];
+  let pointTierNameList = [];
+  for (let i = 0; i &lt; tierNameList.length; i++) {
+    let tierName = tierNameList[i];
+    let tier = tg.tierDict[tierName];
+    if (tier instanceof IntervalTier) {
+      intervalTierNameList.push(tierName);
+    }
+    else if (tier instanceof PointTier) {
+      pointTierNameList.push(tierName);
+    }
+  }
+
+  // Merge the interval tiers
+  let intervalTier = null;
+  if (intervalTierNameList.length > 0) {
+    intervalTier = tg.tierDict[intervalTierNameList[0]];
+    for (let i = 1; i &lt; intervalTierNameList.length; i++) {
+      intervalTier = takeTierUnion(intervalTier, tg.tierDict[intervalTierNameList[i]]);
+    }
+    intervalTier.name = intervalTierName;
+  }
+
+  // Merge the point tiers
+  let pointTier = null;
+  if (pointTierNameList.length > 0) {
+    pointTier = tg.tierDict[pointTierNameList[0]];
+    for (let i = 1; i &lt; pointTierNameList.length; i++) {
+      pointTier = takeTierUnion(pointTier, tg.tierDict[pointTierNameList[i]]);
+    }
+    pointTier.name = pointTierName;
+  }
+
+  // Add unmerged tiers
+  let tierNamesToKeep = []
+  if (preserveOtherTiers === true) {
+    for (let i = 0; i &lt; tg.tierNameList.length; i++) {
+      let currTierName = tg.tierNameList[i];
+      if (!tierNameList.includes(currTierName)) tierNamesToKeep.push(currTierName);
+    }
+  }
+
+  // Create the final textgrid to output
+  let retTg = new Textgrid();
+  if (intervalTier !== null) retTg.addTier(intervalTier);
+  if (pointTier !== null) retTg.addTier(pointTier);
+
+  for (let i = 0; i &lt; tierNamesToKeep.length; i++) {
+    retTg.addTier(tg.tierDict[tierNamesToKeep[i]]);
+  }
+
+  retTg.minTimestamp = tg.minTimestamp;
+  retTg.maxTimestamp = tg.maxTimestamp;
+
+  return retTg;
+}
+
+/**
+ * Takes the set union of two tiers.
+ * All the entries in the second tier will be added to the first.
+ * Overlapping entries will be merged together.
+ * @params {TextgridTier} tier1 - the base tier
+ * @params {TextgridTier} tier2 - the tier to union into the base tier
+ * @return {TextgridTier}
+ */
+function takeTierUnion (tier1, tier2) {
+  let retTier = copyTier(tier1);
+
+  for (let i = 0; i &lt; tier2.entryList.length; i++) {
+    retTier.insertEntry(tier2.entryList[i], false, 'merge');
+  }
+
+  retTier.sort();
+  return retTier;
+}
+
+/**
+ * Takes the set difference of this tier and the given one.
+ * Any overlapping portions of entries with entries in this textgrid
+ * will be removed from the returned tier.
+ * @params {TextgridTier} tier1 - the base tier
+ * @params {TextgridTier} tier2 - the tier to take the difference of with the base tier
+ * @return {TextgridTier}
+ */
+function takeIntervalTierDifference (tier1, tier2) {
+  let retTier = copyTier(tier1);
+
+  for (let i = 0; i &lt; tier2.entryList.length; i++) {
+    let entry = tier2.entryList[i];
+    retTier = eraseRegionFromTier(retTier, entry[0], entry[1], false, 'truncated');
+  }
+
+  return retTier;
+}
+
+/**
+ * Takes the set intersection of this tier and the given one.
+ * Only intervals that exist in both tiers will remain in the
+ * returned tier.  If intervals partially overlap, only the overlapping
+ * portion will be returned.
+ * @params {TextgridTier} tier1 - the base tier
+ * @params {TextgridTier} tier2 - the tier to intersect the base tier with
+ * @return {TextgridTier}
+ */
+function takeIntervalTierIntersection (tier1, tier2) {
+  let newEntryList = [];
+  for (let i = 0; i &lt; tier1.entryList.length; i++) {
+    let entry = tier1.entryList[i];
+    let subTier = cropTier(tier2, entry[0], entry[1], 'truncated', false);
+
+    // Combine the labels in the two tiers
+    let stub = entry[2] + '-';
+    let subEntryList = subTier.entryList.map((subEntry) => [subEntry[0], subEntry[1], stub + subEntry[2]]);
+    newEntryList = newEntryList.concat(subEntryList);
+  }
+  let name = tier1.name + '-' + tier2.name;
+  let retTier = copyTier(tier1, { 'name': name, 'entryList': newEntryList });
+  return retTier;
+}
+
+export {
+  // functions that modify
+  appendTextgrid, appendTier,
+  cropTextgrid, cropTier,
+  editTextgridTimestamps, editTierTimestamps,
+  eraseRegionFromTextgrid, eraseRegionFromTier,
+  insertSpaceIntoTextgrid, insertSpaceIntoTier,
+  mergeTextgridTiers,
+  takeTierUnion, takeIntervalTierDifference, takeIntervalTierIntersection
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-textgrid.html">textgrid</a></li><li><a href="module-textgrid_io.html">textgrid_io</a></li><li><a href="module-textgrid_modifiers.html">textgrid_modifiers</a></li><li><a href="module-utils.html">utils</a></li></ul><h3>Classes</h3><ul><li><a href="module-textgrid-IntervalTier.html">IntervalTier</a></li><li><a href="module-textgrid-PointTier.html">PointTier</a></li><li><a href="module-textgrid-Textgrid.html">Textgrid</a></li><li><a href="module-textgrid-TextgridTier.html">TextgridTier</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Feb 17 2019 18:10:37 GMT+0900 (Japan Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

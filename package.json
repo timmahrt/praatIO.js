@@ -5,7 +5,8 @@
   "scripts": {
     "linter": "eslint --ignore-path .gitignore ./lib",
     "test": "jest --config=./test/unit/jest.conf.js",
-    "coveralls": "cat ./test/unit/coverage/lcov.info | coveralls"
+    "coveralls": "cat ./test/unit/coverage/lcov.info | coveralls",
+    "docs": "jsdoc -d ./docs --readme ./README.md ./lib"
   },
   "repository": {
     "type": "git",
