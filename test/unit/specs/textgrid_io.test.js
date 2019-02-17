@@ -1,14 +1,9 @@
 import fs from 'fs';
 
-let praatiojs = require('../../../lib');
-
-let INTERVAL_TIER = praatiojs.textgrid.INTERVAL_TIER;
-let POINT_TIER = praatiojs.textgrid.POINT_TIER;
-
-let parseTextgrid = praatiojs.textgrid_io.parseTextgrid;
-let serializeTextgrid = praatiojs.textgrid_io.serializeTextgrid;
-let serializeTextgridToCsv = praatiojs.textgrid_io.serializeTextgridToCsv;
-let decodeBuffer = praatiojs.textgrid_io.decodeBuffer;
+import {
+  parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer,
+  INTERVAL_TIER, POINT_TIER
+} from '../../../lib';
 
 function entriesAreEqual (entryA, entryB, tierType) {
   expect([INTERVAL_TIER, POINT_TIER]).toContain(tierType);
