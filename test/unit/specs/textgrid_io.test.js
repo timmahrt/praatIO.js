@@ -1,7 +1,8 @@
 import fs from 'fs';
 
 import {
-  parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer,
+  parseTextgrid, serializeTextgrid, serializeTextgridToCsv,
+  decodeBuffer, IntervalTier, Textgrid, prepTgForSaving,
   INTERVAL_TIER, POINT_TIER
 } from '../../../lib';
 
@@ -87,4 +88,112 @@ test('if two textgrid files are the same except one is short and one is normal, 
   let shortTg = parseTextgrid(shortTgBuffer);
 
   textgridsAreEqual(normalTg, shortTg);
+});
+
+test('removeUltrashortIntervals does nothing if there are no short intervals', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let expectedEntryList = [
+    [0.0, 0.4, ''], [0.4, 0.6, 'A'], [0.6, 0.8, ''], [0.8, 1.0, 'E'],
+    [1.0, 1.2, ''], [1.2, 1.3, 'I'], [1.3, 2.0, '']
+  ];
+  let tier = new IntervalTier('test', userEntryList, 0, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  let expectedTier = new IntervalTier('test', expectedEntryList, 0, 2.0);
+  let cleanedTg = prepTgForSaving(tg);
+  let cleanedTier = cleanedTg.tierDict[cleanedTg.tierNameList[0]];
+
+  tiersAreEqual(expectedTier, cleanedTier, INTERVAL_TIER);
+});
+
+test('prepTgForSaving respects a minimum timestamp if there is one', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let expectedEntryList = [
+    [0.3, 0.4, ''], [0.4, 0.6, 'A'], [0.6, 0.8, ''], [0.8, 1.0, 'E'],
+    [1.0, 1.2, ''], [1.2, 1.3, 'I'], [1.3, 2.0, '']
+  ];
+  let tier = new IntervalTier('test', userEntryList, 0.3, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  let expectedTier = new IntervalTier('test', expectedEntryList, 0.3, 2.0);
+  let cleanedTg = prepTgForSaving(tg);
+  let cleanedTier = cleanedTg.tierDict[cleanedTg.tierNameList[0]];
+
+  tiersAreEqual(expectedTier, cleanedTier, INTERVAL_TIER);
+});
+
+test('prepTgForSaving with forcing a minimum timestamp', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let expectedEntryList = [
+    [0.0, 0.4, ''], [0.4, 0.6, 'A'], [0.6, 0.8, ''], [0.8, 1.0, 'E'],
+    [1.0, 1.2, ''], [1.2, 1.3, 'I'], [1.3, 2.0, '']
+  ];
+  let tier = new IntervalTier('test', userEntryList, 0.3, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  let expectedTier = new IntervalTier('test', expectedEntryList, 0, 2.0);
+  let cleanedTg = prepTgForSaving(tg, null, 0);
+  let cleanedTier = cleanedTg.tierDict[cleanedTg.tierNameList[0]];
+
+  tiersAreEqual(expectedTier, cleanedTier, INTERVAL_TIER);
+});
+
+test('prepTgForSaving with forcing a maximum timestamp', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let expectedEntryList = [
+    [0.0, 0.4, ''], [0.4, 0.6, 'A'], [0.6, 0.8, ''], [0.8, 1.0, 'E'],
+    [1.0, 1.2, ''], [1.2, 1.3, 'I'], [1.3, 3.0, '']
+  ];
+  let tier = new IntervalTier('test', userEntryList, 0, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  let expectedTier = new IntervalTier('test', expectedEntryList, 0, 3.0);
+  let cleanedTg = prepTgForSaving(tg, null, 0, 3.0);
+  let cleanedTier = cleanedTg.tierDict[cleanedTg.tierNameList[0]];
+
+  tiersAreEqual(expectedTier, cleanedTier, INTERVAL_TIER);
+});
+
+test('prepTgForSaving raises exception if minTimestamp is too large', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let tier = new IntervalTier('test', userEntryList, 0, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  expect(() => {
+    prepTgForSaving(tg, null, 1.0, null);
+  }).toThrowError('Tier data is before the tier start time.');
+});
+
+test('prepTgForSaving raises exception if maxTimestamp is too small', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let tier = new IntervalTier('test', userEntryList, 0, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  expect(() => {
+    prepTgForSaving(tg, null, null, 1.0);
+  }).toThrowError('Tier data is after the tier end time.');
+});
+
+test('prepTgForSaving raises exception if maxTimestamp is too small', () => {
+  let userEntryList = [[0.35, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let expectedEntryList = [
+    [0.3, 0.6, 'A'], [0.6, 0.8, ''], [0.8, 1.0, 'E'],
+    [1.0, 1.2, ''], [1.2, 1.3, 'I'], [1.3, 2.0, '']
+  ];
+
+  let tier = new IntervalTier('test', userEntryList, 0.3, 2.0);
+  let tg = new Textgrid();
+  tg.addTier(tier);
+
+  let expectedTier = new IntervalTier('test', expectedEntryList, 0.3, 2.0);
+  let cleanedTg = prepTgForSaving(tg, 0.06);
+  let cleanedTier = cleanedTg.tierDict[cleanedTg.tierNameList[0]];
+
+  tiersAreEqual(expectedTier, cleanedTier, INTERVAL_TIER);
 });

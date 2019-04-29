@@ -36,6 +36,30 @@ test('can build PointTiers', () => {
   }
 });
 
+test('by default, the min and max timestamps come from the entry list', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let tier = new IntervalTier('test', userEntryList)
+
+  expect(tier.minTimestamp).toEqual(0.4);
+  expect(tier.maxTimestamp).toEqual(1.3);
+});
+
+test('user can override the default min and max timestamps', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let tier = new IntervalTier('test', userEntryList, 0.0, 2.0);
+
+  expect(tier.minTimestamp).toEqual(0.0);
+  expect(tier.maxTimestamp).toEqual(2.0);
+});
+
+test('user specified min/max values are ignored if greater/less than the min/max timestamps in the entry list', () => {
+  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  let tier = new IntervalTier('test', userEntryList, 0.9, 1.1);
+
+  expect(tier.minTimestamp).toEqual(0.4);
+  expect(tier.maxTimestamp).toEqual(1.3);
+});
+
 test('can build IntervalTiers', () => {
   let name = 'words';
   let intervals = [
