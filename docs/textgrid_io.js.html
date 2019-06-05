@@ -372,7 +372,7 @@ function tierToText (tier) {
  * removes such intervals.
  * @ignore
  */
-function removeUltrashortIntervals (tier, minLength) {
+function removeUltrashortIntervals (tier, minLength, minTimestamp) {
   // First, remove tiny intervals
   let newEntryList = [];
   let j = 0;
@@ -385,8 +385,8 @@ function removeUltrashortIntervals (tier, minLength) {
       }
     } else {
       // Special case: the first entry in oldEntryList was ultra-short
-      if (newEntryList.length === 0 &amp;&amp; start !== 0) {
-        newEntryList.push([0, stop, label]);
+      if (newEntryList.length === 0 &amp;&amp; start !== minTimestamp) {
+        newEntryList.push([minTimestamp, stop, label]);
       } else { // Normal case
         newEntryList.push([start, stop, label]);
       }
@@ -398,7 +398,7 @@ function removeUltrashortIntervals (tier, minLength) {
   j = 0;
   while (j &lt; newEntryList.length - 1) {
     let diff = Math.abs(newEntryList[j][1] - newEntryList[j + 1][0]);
-    if (diff > 0 &amp;&amp; diff &lt; MIN_INTERVAL_LENGTH) {
+    if (diff > 0 &amp;&amp; diff &lt; minLength) {
       newEntryList[j] = [newEntryList[j][0], newEntryList[j + 1][0], newEntryList[j][2]];
     }
     j += 1;
@@ -416,12 +416,16 @@ function removeUltrashortIntervals (tier, minLength) {
  * @param {Array} [tierNameList=null] - the list of tier names to save.  If null, save all tiers.
  * @return {text}
  */
-function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null) {
+function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null, includeHeader = true) {
   if (!tierNameList) tierNameList = tg.tierNameList;
-  let colHeader = tierNameList.slice();
-  colHeader.push('Start Time');
-  colHeader.push('End Time');
-  let table = [colHeader];
+
+  let table = [];
+  if (includeHeader === true) {
+    let colHeader = tierNameList.slice();
+    colHeader.push('Start Time');
+    colHeader.push('End Time');
+    table.push(colHeader);
+  }
   let tier = tg.tierDict[pivotTierName];
   for (let i = 0; i &lt; tier.entryList.length; i++) {
     let start = tier.entryList[i][0];
@@ -456,9 +460,42 @@ function serializeTextgridToCsv (tg, pivotTierName, tierNameList = null) {
  * Formats a textgrid instance for saving to a .TextGrid file.
  * @param {Textgrid} tg
  * @param {number} [minimumIntervalLength=MIN_INTERVAL_LENGTH] - remove all intervals shorter than this; if null, don't remove any intervals
+ * @param {number} [minTimestamp = null] -- the minTimestamp of the saved Textgrid; if None, use whatever is defined in the Textgrid object.  If minTimestamp is larger than timestamps in your textgrid, an exception will be thrown.
+ * @param {number} [maxTimestamp = null] -- the maxTimestamp of the saved Textgrid; if None, use whatever is defined in the Textgrid object.  If maxTimestamp is larger than timestamps in your textgrid, an exception will be thrown.
  * @return A text representation of a textgrid that can be opened by Praat
  */
-function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
+function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH, minTimestamp = null, maxTimestamp = null) {
+  if (minTimestamp === null) minTimestamp = tg.minTimestamp;
+  if (maxTimestamp === null) maxTimestamp = tg.maxTimestamp;
+
+  let outputTg = prepTgForSaving(tg, minimumIntervalLength, minTimestamp, maxTimestamp);
+
+  // Header
+  let outputTxt = '';
+  outputTxt += 'File type = "ooTextFile short"\n';
+  outputTxt += 'Object class = "TextGrid"\n\n';
+  outputTxt += `${minTimestamp}\n${maxTimestamp}\n`;
+  outputTxt += `&lt;exists>\n${outputTg.tierNameList.length}\n`;
+
+  for (let i = 0; i &lt; outputTg.tierNameList.length; i++) {
+    outputTxt += tierToText(outputTg.tierDict[outputTg.tierNameList[i]]);
+  }
+
+  return outputTxt;
+}
+
+/**
+ * Processing done before every textgrid is saved (serializeTextgrid calls this function) -- gaps are filled with silence and short intervals can be removed
+ * @param {Textgrid} tg
+ * @param {number} [minimumIntervalLength=MIN_INTERVAL_LENGTH] - remove all intervals shorter than this; if null, don't remove any intervals
+ * @param {number} [minTimestamp = null] -- the minTimestamp of the saved Textgrid; if None, use whatever is defined in the Textgrid object.  If minTimestamp is larger than timestamps in your textgrid, an exception will be thrown.
+ * @param {number} [maxTimestamp = null] -- the maxTimestamp of the saved Textgrid; if None, use whatever is defined in the Textgrid object.  If maxTimestamp is larger than timestamps in your textgrid, an exception will be thrown.
+ * @return A cleaned TextGrid
+ */
+function prepTgForSaving (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH, minTimestamp = null, maxTimestamp = null) {
+  if (minTimestamp === null) minTimestamp = tg.minTimestamp;
+  if (maxTimestamp === null) maxTimestamp = tg.maxTimestamp;
+
   for (let i = 0; i &lt; tg.tierNameList.length; i++) {
     tg.tierDict[tg.tierNameList[i]].sort();
   }
@@ -469,9 +506,9 @@ function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
     let tier = tg.tierDict[tierName];
 
     if (tier instanceof IntervalTier) {
-      tier = fillInBlanks(tier, '', tg.minTimestamp, tg.maxTimestamp);
+      tier = fillInBlanks(tier, '', minTimestamp, maxTimestamp);
       if (minimumIntervalLength !== null) {
-        tier = removeUltrashortIntervals(tier, minimumIntervalLength);
+        tier = removeUltrashortIntervals(tier, minimumIntervalLength, minTimestamp);
       }
       tg.tierDict[tierName] = tier;
     }
@@ -481,18 +518,7 @@ function serializeTextgrid (tg, minimumIntervalLength = MIN_INTERVAL_LENGTH) {
     tg.tierDict[tg.tierNameList[i]].sort();
   }
 
-  // Header
-  let outputTxt = '';
-  outputTxt += 'File type = "ooTextFile short"\n';
-  outputTxt += 'Object class = "TextGrid"\n\n';
-  outputTxt += `${tg.minTimestamp}\n${tg.maxTimestamp}\n`;
-  outputTxt += `&lt;exists>\n${tg.tierNameList.length}\n`;
-
-  for (let i = 0; i &lt; tg.tierNameList.length; i++) {
-    outputTxt += tierToText(tg.tierDict[tg.tierNameList[i]]);
-  }
-
-  return outputTxt;
+  return tg;
 }
 
 /**
@@ -534,7 +560,7 @@ function decodeBuffer (buffer) {
   return returnText;
 }
 
-export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer };
+export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer, prepTgForSaving };
 </code></pre>
         </article>
     </section>
@@ -551,7 +577,7 @@ export { parseTextgrid, serializeTextgrid, serializeTextgridToCsv, decodeBuffer 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Feb 17 2019 18:10:37 GMT+0900 (Japan Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.2</a> on Thu Jun 06 2019 08:10:17 GMT+0900 (Japan Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

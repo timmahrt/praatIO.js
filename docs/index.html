@@ -43,7 +43,8 @@
 
 
     <section>
-        <article><h1>praatIO</h1><p><a href="https://travis-ci.org/timmahrt/praatIO.js"><img src="https://travis-ci.org/timmahrt/praatIO.js.svg?branch=master" alt=""></a>
+        <article><h1>praatIO</h1>
+<p><a href="https://travis-ci.org/timmahrt/praatIO.js"><img src="https://travis-ci.org/timmahrt/praatIO.js.svg?branch=master" alt=""></a>
 <a href="https://coveralls.io/github/timmahrt/praatIO.js?branch=master"><img src="https://coveralls.io/repos/github/timmahrt/praatIO.js/badge.svg?" alt=""></a>
 <a href="http://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg?" alt=""></a>
 <a href="https://www.npmjs.com/package/praatio"><img src="https://img.shields.io/npm/v/praatio.svg" alt=""></a></p>
@@ -52,9 +53,10 @@
 speech transcripts, phonetic information, noise events (e.g. door slams, laughter), impressionistic ratings, or numerical data (pitch values).</p>
 <p>Each annotation layer is known as a tier.  Tiers come in two varieties: point tiers and interval tiers.</p>
 <p>Textgrids can be opened and manually edited with praat
-http://<a href="http://www.fon.hum.uva.nl/praat/">www.fon.hum.uva.nl/praat/</a></p>
-<p>praatIO.js can read and write textgrid files and has various functions for modifying and querying textgrid files.  Combined with an audio library, one could programmatically extract information or subsegments of an audio file.  </p>
-<h2>Major revisions</h2><p>Ver 2.0 (February 17, 2019)</p>
+http://www.fon.hum.uva.nl/praat/</p>
+<p>praatIO.js can read and write textgrid files and has various functions for modifying and querying textgrid files.  Combined with an audio library, one could programmatically extract information or subsegments of an audio file.</p>
+<h2>Major revisions</h2>
+<p>Ver 2.0 (February 17, 2019)</p>
 <ul>
 <li>Complete rewrite</li>
 <li>New tree-shaking friendly API</li>
@@ -72,14 +74,19 @@ http://<a href="http://www.fon.hum.uva.nl/praat/">www.fon.hum.uva.nl/praat/</a><
 <li>Support for reading in a longform textgrid as JSON</li>
 <li>Handles both point tiers and interval tiers</li>
 </ul>
-<h2>Installation</h2><p><code>npm install praatio</code></p>
-<h2>Documentation</h2><p>Generated JSdocs can be found here:</p>
+<h2>Installation</h2>
+<p><code>npm install praatio</code></p>
+<h2>Documentation</h2>
+<p>Generated JSdocs can be found here:</p>
 <p><a href="http://timmahrt.github.io/praatIO.js/">praatIO jsdocs page</a></p>
-<h2>Usage / Before Getting Started</h2><p>Although the code is broken across several modules for organization, the whole api is exposed in the main import.  E.g. all functions and classes can be imported like so:</p>
+<h2>Usage / Before Getting Started</h2>
+<p>Although the code is broken across several modules for organization, the whole api is exposed in the main import.  E.g. all functions and classes can be imported like so:</p>
 <pre class="prettyprint source lang-javascript"><code>import {
   Textgrid, IntervalTier, PointTier, parseTextgrid,
   serializeTextgrid, serializeTextgridToCsv
-} from 'praatio'</code></pre><p>Important for working with praatio is understanding the root classes: Textgrid, IntervalTier, and PointTier.  IntervalTier and PointTier hold time and label information that describe events that occur over an interval or at discreet points in an audio file.  A Textgrid is a container that can hold multiple tiers that contain different information about the same audio file.</p>
+} from 'praatio'
+</code></pre>
+<p>Important for working with praatio is understanding the root classes: Textgrid, IntervalTier, and PointTier.  IntervalTier and PointTier hold time and label information that describe events that occur over an interval or at discreet points in an audio file.  A Textgrid is a container that can hold multiple tiers that contain different information about the same audio file.</p>
 <p>For example, as shown in the following schematic, we could annotate one tier with the words spoken in an utterance, annotate another tier with phones (vowels and consonants), and in a third tier, annotate the max pitch value found in each word.</p>
 <p><img src="./textgrid.png" alt="textgrid"></p>
 <p>A Textgrid contains two important instance variables: <code>tierDict</code> and <code>tierNameList</code>.  <code>tierDict</code> is an object of the form <code>{tierName: tier, ...}</code> that stores the Textgrid's tiers.  Tiers are ordered and <code>tierNameList</code> maintains that order.</p>
@@ -95,8 +102,11 @@ def printOutDurations(tgFileBuffer, tierName) {
     let entry = tier.entryList[i];
     console.log(entry[1] - entry[0]);
   }
-}</code></pre><p>Being able to iterate over a tier is the only thing that is needed from the tier itself.  However, there are lots of methods provided for modifying or querying textgrids and tiers.  These are summarized below and provided in more detail in the documentation.</p>
-<h3>Serializing</h3><p>If you read a .TextGrid file into memory,
+}
+</code></pre>
+<p>Being able to iterate over a tier is the only thing that is needed from the tier itself.  However, there are lots of methods provided for modifying or querying textgrids and tiers.  These are summarized below and provided in more detail in the documentation.</p>
+<h3>Serializing</h3>
+<p>If you read a .TextGrid file into memory,
 <code>parseTextgrid</code> can be used to convert that into a Textgrid instance.</p>
 <p>To go the opposite direction, use <code>serializeTextgrid</code> which
 returns the contents of a <code>.TextGrid</code> file as a string,
@@ -105,7 +115,8 @@ which can be written directly to a file.</p>
 as a comma separate list of values.  A textgrid cannot be fully
 represented in a csv file, so you'll have to choose the tier
 to 'pivot' from.</p>
-<h3>Methods</h3><p>Here is a short summary of the provided functions.  Please see the documentation for details: <a href="http://timmahrt.github.io/praatIO.js/">praatIO jsdocs page</a></p>
+<h3>Methods</h3>
+<p>Here is a short summary of the provided functions.  Please see the documentation for details: <a href="http://timmahrt.github.io/praatIO.js/">praatIO jsdocs page</a></p>
 <p>The main data structures</p>
 <ul>
 <li>Textgrid, IntervalTier, PointTier</li>
@@ -167,7 +178,7 @@ entryListToTree, findIntervalAtTime, findPointAtTime</li>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Feb 17 2019 18:37:58 GMT+0900 (Japan Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.2</a> on Thu Jun 06 2019 08:10:17 GMT+0900 (Japan Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
