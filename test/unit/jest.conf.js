@@ -17,7 +17,7 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: '<rootDir>/test/unit/coverage',
   collectCoverageFrom: [
-    'lib/*.{js}',
+    '**/lib/*.{js,jsx}',
     '!**/node_modules/**'
   ]
 }
