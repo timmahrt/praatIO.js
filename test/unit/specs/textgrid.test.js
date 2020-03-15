@@ -18,13 +18,13 @@ import {
 expect.extend({ toBeDeepCloseTo });
 
 test('can build PointTiers', () => {
-  let name = 'pitch values';
-  let points = [
+  const name = 'pitch values';
+  const points = [
     [1.5, '93'],
     [2.5, '100'],
     [3.5, '75']
   ];
-  let tier = new PointTier(name, points);
+  const tier = new PointTier(name, points);
 
   expect(tier.name).toEqual(name);
   expect(tier.minTimestamp).toEqual(1.5);
@@ -37,38 +37,38 @@ test('can build PointTiers', () => {
 });
 
 test('by default, the min and max timestamps come from the entry list', () => {
-  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
-  let tier = new IntervalTier('test', userEntryList)
+  const userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  const tier = new IntervalTier('test', userEntryList)
 
   expect(tier.minTimestamp).toEqual(0.4);
   expect(tier.maxTimestamp).toEqual(1.3);
 });
 
 test('user can override the default min and max timestamps', () => {
-  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
-  let tier = new IntervalTier('test', userEntryList, 0.0, 2.0);
+  const userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  const tier = new IntervalTier('test', userEntryList, 0.0, 2.0);
 
   expect(tier.minTimestamp).toEqual(0.0);
   expect(tier.maxTimestamp).toEqual(2.0);
 });
 
 test('user specified min/max values are ignored if greater/less than the min/max timestamps in the entry list', () => {
-  let userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
-  let tier = new IntervalTier('test', userEntryList, 0.9, 1.1);
+  const userEntryList = [[0.4, 0.6, 'A'], [0.8, 1.0, 'E'], [1.2, 1.3, 'I']];
+  const tier = new IntervalTier('test', userEntryList, 0.9, 1.1);
 
   expect(tier.minTimestamp).toEqual(0.4);
   expect(tier.maxTimestamp).toEqual(1.3);
 });
 
 test('can build IntervalTiers', () => {
-  let name = 'words';
-  let intervals = [
+  const name = 'words';
+  const intervals = [
     [0.73, 1.02, 'John'],
     [1.02, 1.231, 'ate'],
     [1.33, 1.54, 'the'],
     [1.54, 1.71, 'pie']
   ];
-  let tier = new IntervalTier(name, intervals);
+  const tier = new IntervalTier(name, intervals);
 
   expect(tier.name).toEqual(name);
   expect(tier.minTimestamp).toEqual(0.73);
@@ -91,20 +91,20 @@ test('PointTiers and IntervalTiers must have a min and max timestamp', () => {
 });
 
 test('addTier adds a tier to a Textgrid', () => {
-  let tg = getPrefabTextgrid();
-  let origNumTiers = tg.tierNameList.length;
-  let origTierNameList = tg.tierNameList.slice();
-  let origMinTimestamp = tg.minTimestamp;
-  let origMaxTimestamp = tg.maxTimestamp;
+  const tg = getPrefabTextgrid();
+  const origNumTiers = tg.tierNameList.length;
+  const origTierNameList = tg.tierNameList.slice();
+  const origMinTimestamp = tg.minTimestamp;
+  const origMaxTimestamp = tg.maxTimestamp;
 
-  let tierName = 'words';
-  let tierMinTime = 1.2;
-  let tierMaxTime = 3;
+  const tierName = 'words';
+  const tierMinTime = 1.2;
+  const tierMaxTime = 3;
 
   // Ensure our times fit within the extremes used by the factory
   expect(tierMinTime).toBeGreaterThan(origMinTimestamp);
   expect(tierMaxTime).toBeLessThan(origMaxTimestamp);
-  let tier = new IntervalTier(tierName, [], tierMinTime, tierMaxTime);
+  const tier = new IntervalTier(tierName, [], tierMinTime, tierMaxTime);
 
   tg.addTier(tier);
 
@@ -117,15 +117,15 @@ test('addTier adds a tier to a Textgrid', () => {
 });
 
 test('addTier overrides existing min/max time if less than/greater than existing times, respectively', () => {
-  let tg = getPrefabTextgrid();
-  let origNumTiers = tg.tierNameList.length;
-  let origTierNameList = tg.tierNameList.slice();
+  const tg = getPrefabTextgrid();
+  const origNumTiers = tg.tierNameList.length;
+  const origTierNameList = tg.tierNameList.slice();
 
   // Add second tier; override mintime and maxtime
-  let tierName = 'editors notes'
-  let tierMinTime = 0.1;
-  let tierMaxTime = 150.3;
-  let tier = new IntervalTier(tierName, [], tierMinTime, tierMaxTime);
+  const tierName = 'editors notes'
+  const tierMinTime = 0.1;
+  const tierMaxTime = 150.3;
+  const tier = new IntervalTier(tierName, [], tierMinTime, tierMaxTime);
 
   tg.addTier(tier);
 
@@ -138,16 +138,16 @@ test('addTier overrides existing min/max time if less than/greater than existing
 });
 
 test('tiers can be inserted into arbitrary positions', () => {
-  let tg = getPrefabTextgrid();
-  let origNumTiers = tg.tierNameList.length;
-  let tierNameList = tg.tierNameList.slice();
+  const tg = getPrefabTextgrid();
+  const origNumTiers = tg.tierNameList.length;
+  const tierNameList = tg.tierNameList.slice();
 
   // Insert third tier between the two tiers; override mintime
-  let tierName = 'speaker 3'
-  let tierMinTime = 1.33;
-  let tierMaxTime = 2.14;
-  let tier = new PointTier(tierName, [], tierMinTime, tierMaxTime);
-  let insertI = 1;
+  const tierName = 'speaker 3'
+  const tierMinTime = 1.33;
+  const tierMaxTime = 2.14;
+  const tier = new PointTier(tierName, [], tierMinTime, tierMaxTime);
+  const insertI = 1;
 
   tg.addTier(tier, insertI);
   tierNameList.splice(insertI, 0, tierName);
@@ -159,8 +159,8 @@ test('tiers can be inserted into arbitrary positions', () => {
 });
 
 test('addTier fails if a tier with the same name already exists in the textgrid', () => {
-  let tg = getPrefabTextgrid();
-  let tier = new IntervalTier('speaker 1', [], 0, 2);
+  const tg = getPrefabTextgrid();
+  const tier = new IntervalTier('speaker 1', [], 0, 2);
 
   expect(() => {
     tg.addTier(tier);
@@ -168,9 +168,9 @@ test('addTier fails if a tier with the same name already exists in the textgrid'
 });
 
 test('can rename tiers in a textgrid', () => {
-  let tg = getPrefabTextgrid();
-  let origName = 'speaker 1';
-  let newName = 'Bob';
+  const tg = getPrefabTextgrid();
+  const origName = 'speaker 1';
+  const newName = 'Bob';
   expect(tg.tierNameList[0]).toEqual(origName);
 
   tg.renameTier(origName, newName);
@@ -179,8 +179,8 @@ test('can rename tiers in a textgrid', () => {
 });
 
 test('can delete tiers in a textgrid', () => {
-  let tg = getPrefabTextgrid();
-  let tierName = 'speaker 2';
+  const tg = getPrefabTextgrid();
+  const tierName = 'speaker 2';
 
   expect(tg.tierNameList.length).toEqual(5);
   expect(Object.keys(tg.tierDict).length).toEqual(5);
@@ -194,22 +194,22 @@ test('can delete tiers in a textgrid', () => {
 });
 
 test('can replace tiers in a textgrid', () => {
-  let tg = getPrefabTextgrid();
-  let newTierName = 'speaker 3';
-  let oldTierName = 'speaker 1';
+  const tg = getPrefabTextgrid();
+  const newTierName = 'speaker 3';
+  const oldTierName = 'speaker 1';
 
   expect(tg.tierNameList.length).toEqual(5);
   expect(Object.keys(tg.tierDict).length).toEqual(5);
   expect(Object.keys(tg.tierDict)).toContain(oldTierName);
   expect(Object.keys(tg.tierDict)).not.toContain(newTierName);
 
-  let intervals = [
+  const intervals = [
     [0.51, 0.80, 'Sarah'],
     [0.80, 1.13, 'hit'],
     [1.13, 1.22, 'a'],
     [1.22, 1.50, 'flyball']
   ];
-  let intervalTier = new IntervalTier(newTierName, intervals);
+  const intervalTier = new IntervalTier(newTierName, intervals);
   tg.replaceTier(oldTierName, intervalTier);
 
   expect(tg.tierNameList.length).toEqual(5);
@@ -219,33 +219,33 @@ test('can replace tiers in a textgrid', () => {
 });
 
 test('can compare textgrids for equality', () => {
-  let tgA = getPrefabTextgrid();
-  let tgB = getPrefabTextgrid();
+  const tgA = getPrefabTextgrid();
+  const tgB = getPrefabTextgrid();
 
   expect(compareTextgrids(tgA, tgB)).toEqual(true);
 
-  let tierName = 'speaker 1';
+  const tierName = 'speaker 1';
   tgA.tierDict[tierName].insertEntry([2.03, 2.35, 'maybe'], false, 'replace');
 
   expect(compareTextgrids(tgA, tgB)).toEqual(false);
 });
 
 test('can delete entries from tiers', () => {
-  let intervals = [
+  const intervals = [
     [0.73, 1.02, 'Ichiro'],
     [1.02, 1.231, 'hit'],
     [1.33, 1.54, 'a'],
     [1.54, 1.91, 'homerun']
   ];
-  let intervalTier = new IntervalTier('speaker 1', intervals);
+  const intervalTier = new IntervalTier('speaker 1', intervals);
 
-  let points = [
+  const points = [
     [0.50, 'and'],
     [0.63, 'Fred'],
     [1.01, 'caught'],
     [1.33, 'it']
   ];
-  let pointTier = new PointTier('speaker 2', points);
+  const pointTier = new PointTier('speaker 2', points);
 
   expect(intervalTier.entryList.length).toEqual(4);
   expect(intervalTier.entryList).toContainEqual(intervals[1]);
@@ -261,13 +261,13 @@ test('can delete entries from tiers', () => {
 })
 
 test('deleting entries from tiers fails if the entry doesnt exist', () => {
-  let intervals = [
+  const intervals = [
     [0.73, 1.02, 'Ichiro'],
     [1.02, 1.231, 'hit'],
     [1.33, 1.54, 'a'],
     [1.54, 1.91, 'homerun']
   ];
-  let intervalTier = new IntervalTier('speaker 1', intervals);
+  const intervalTier = new IntervalTier('speaker 1', intervals);
 
   expect(() => {
     intervalTier.deleteEntry([1, 2, '3']); // eslint-disable-line no-new
@@ -275,7 +275,7 @@ test('deleting entries from tiers fails if the entry doesnt exist', () => {
 })
 
 test('findLabelInTier() finds matching labels in a tier ', () => {
-  let tier = getIntervalTier2();
+  const tier = getIntervalTier2();
   let matchList
 
   matchList = findLabelInTier(tier, 'Fred');
@@ -291,7 +291,7 @@ test('findLabelInTier() finds matching labels in a tier ', () => {
 })
 
 test('findLabelInTier() works with partial matches', () => {
-  let tier = getIntervalTier2();
+  const tier = getIntervalTier2();
   let matchList
 
   matchList = findLabelInTier(tier, 'Fred', 'substr');
@@ -308,7 +308,7 @@ test('findLabelInTier() works with partial matches', () => {
 })
 
 test('findLabelInTier() works with regular expressions', () => {
-  let tier = getIntervalTier2();
+  const tier = getIntervalTier2();
   let matchList
 
   matchList = findLabelInTier(tier, 'a', 're');
@@ -325,14 +325,14 @@ test('findLabelInTier() works with regular expressions', () => {
 })
 
 test('copyTier() creates a new, unique copy', () => {
-  let intervals = [
+  const intervals = [
     [0.73, 1.02, 'Ichiro'],
     [1.02, 1.231, 'hit'],
     [1.33, 1.54, 'a'],
     [1.54, 1.91, 'homerun']
   ];
-  let intervalTier1 = new IntervalTier('speaker 1', intervals);
-  let intervalTier2 = copyTier(intervalTier1);
+  const intervalTier1 = new IntervalTier('speaker 1', intervals);
+  const intervalTier2 = copyTier(intervalTier1);
 
   expect(compareTiers(intervalTier1, intervalTier2)).toBe(true);
   intervalTier2.insertEntry([3.5, 3.7, 'bloop'], false);
@@ -340,15 +340,15 @@ test('copyTier() creates a new, unique copy', () => {
 })
 
 test('copyTextgrid() creates a new, unique copy', () => {
-  let tg1 = getPrefabTextgrid();
-  let tg2 = copyTextgrid(tg1);
+  const tg1 = getPrefabTextgrid();
+  const tg2 = copyTextgrid(tg1);
 
   expect(compareTextgrids(tg1, tg2)).toBe(true);
-  let newTier = new IntervalTier('speaker 3', [], 1.5, 2.0);
+  const newTier = new IntervalTier('speaker 3', [], 1.5, 2.0);
   tg2.addTier(newTier);
   expect(compareTextgrids(tg1, tg2)).toBe(false);
 
-  let tg3 = copyTextgrid(tg1);
+  const tg3 = copyTextgrid(tg1);
 
   expect(compareTextgrids(tg1, tg3)).toBe(true);
   tg3.tierDict['speaker 1'].insertEntry([3.5, 3.7, 'bloop'], false);
@@ -356,8 +356,8 @@ test('copyTextgrid() creates a new, unique copy', () => {
 })
 
 test('pointTier.insertEntry works', () => {
-  let pointTier = getPointTier1();
-  let newPoint = [1.23, '85'];
+  const pointTier = getPointTier1();
+  const newPoint = [1.23, '85'];
 
   expect(pointTier.entryList.length).toEqual(4);
   pointTier.insertEntry(newPoint);
@@ -366,11 +366,11 @@ test('pointTier.insertEntry works', () => {
 })
 
 test('pointTier.insertEntry can replace existing points with flag', () => {
-  let spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
+  const spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
 
-  let pointTier = getPointTier1();
-  let oldPoint = pointTier.entryList[0];
-  let newPoint = [0.9, '85'];
+  const pointTier = getPointTier1();
+  const oldPoint = pointTier.entryList[0];
+  const newPoint = [0.9, '85'];
 
   expect(pointTier.entryList.length).toEqual(4);
   expect(pointTier.entryList).toContain(oldPoint);
@@ -386,8 +386,8 @@ test('pointTier.insertEntry can replace existing points with flag', () => {
 })
 
 test('pointTier.insertEntry wont replace existing points if not explicitly asked', () => {
-  let pointTier = getPointTier1();
-  let newPoint = [0.9, '85'];
+  const pointTier = getPointTier1();
+  const newPoint = [0.9, '85'];
 
   expect(() => {
     pointTier.insertEntry(newPoint);
@@ -395,9 +395,9 @@ test('pointTier.insertEntry wont replace existing points if not explicitly asked
 })
 
 test('pointTier.insertEntry can merge into existing points with flag', () => {
-  let pointTier = getPointTier1();
-  let oldPoint = pointTier.entryList[0];
-  let newPoint = [0.9, '85'];
+  const pointTier = getPointTier1();
+  const oldPoint = pointTier.entryList[0];
+  const newPoint = [0.9, '85'];
 
   expect(pointTier.entryList.length).toEqual(4);
   expect(pointTier.entryList).toContain(oldPoint);
@@ -409,8 +409,8 @@ test('pointTier.insertEntry can merge into existing points with flag', () => {
 })
 
 test('intervalTier.insertEntry works', () => {
-  let intervalTier = getIntervalTier1();
-  let newInterval = [3.20, 3.50, 'maybe'];
+  const intervalTier = getIntervalTier1();
+  const newInterval = [3.20, 3.50, 'maybe'];
 
   expect(intervalTier.entryList.length).toEqual(4);
   intervalTier.insertEntry(newInterval);
@@ -419,11 +419,11 @@ test('intervalTier.insertEntry works', () => {
 })
 
 test('intervalTier.insertEntry can replace existing points with flag', () => {
-  let spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
+  const spy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
 
-  let intervalTier = getIntervalTier1();
-  let oldPoint = intervalTier.entryList[0];
-  let newPoint = [0.73, 0.95, 'Sarah'];
+  const intervalTier = getIntervalTier1();
+  const oldPoint = intervalTier.entryList[0];
+  const newPoint = [0.73, 0.95, 'Sarah'];
 
   expect(intervalTier.entryList.length).toEqual(4);
   expect(intervalTier.entryList).toContain(oldPoint);
@@ -439,8 +439,8 @@ test('intervalTier.insertEntry can replace existing points with flag', () => {
 })
 
 test('intervalTier.insertEntry wont replace existing points if not explicitly asked', () => {
-  let intervalTier = getIntervalTier1();
-  let newInterval = [0.73, 0.95, 'Sarah'];
+  const intervalTier = getIntervalTier1();
+  const newInterval = [0.73, 0.95, 'Sarah'];
 
   expect(() => {
     intervalTier.insertEntry(newInterval);
@@ -448,12 +448,12 @@ test('intervalTier.insertEntry wont replace existing points if not explicitly as
 })
 
 test('intervalTier.insertEntry can merge into existing points with flag', () => {
-  let intervalTier = getIntervalTier1();
-  let oldPoint1 = intervalTier.entryList[0];
-  let oldPoint2 = intervalTier.entryList[1];
+  const intervalTier = getIntervalTier1();
+  const oldPoint1 = intervalTier.entryList[0];
+  const oldPoint2 = intervalTier.entryList[1];
 
   // The new point spans two intervals--all three will be merged together
-  let newPoint = [0.9, 1.10, 'he'];
+  const newPoint = [0.9, 1.10, 'he'];
 
   expect(intervalTier.entryList.length).toEqual(4);
   expect(intervalTier.entryList).toContain(oldPoint1);
@@ -467,79 +467,79 @@ test('intervalTier.insertEntry can merge into existing points with flag', () => 
 })
 
 test('getNonEntriesFromIntervalTier returns empty regions of the tier', () => {
-  let entryList = [[0.5, 1.0, '1'], [1.23, 1.45, '2'], [1.45, 1.5, '3'], [1.6, 1.72, '4']];
-  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
-  let nonEntryList = [[0, 0.5, ''], [1.0, 1.23, ''], [1.5, 1.6, ''], [1.72, 2.0, '']];
+  const entryList = [[0.5, 1.0, '1'], [1.23, 1.45, '2'], [1.45, 1.5, '3'], [1.6, 1.72, '4']];
+  const tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  const nonEntryList = [[0, 0.5, ''], [1.0, 1.23, ''], [1.5, 1.6, ''], [1.72, 2.0, '']];
 
-  let actualNonEntryList = getNonEntriesFromIntervalTier(tier);
+  const actualNonEntryList = getNonEntriesFromIntervalTier(tier);
   expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
 })
 
 test('getNonEntriesFromIntervalTier works for tier with just one entry', () => {
-  let entryList = [[0.73, 1.2, 'cat']];
-  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
-  let nonEntryList = [[0, 0.73, ''], [1.2, 2.0, '']];
+  const entryList = [[0.73, 1.2, 'cat']];
+  const tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  const nonEntryList = [[0, 0.73, ''], [1.2, 2.0, '']];
 
-  let actualNonEntryList = getNonEntriesFromIntervalTier(tier);
+  const actualNonEntryList = getNonEntriesFromIntervalTier(tier);
   expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
 })
 
 test('getNonEntriesFromIntervalTier works for tier with no blank spot at the beginning or end', () => {
-  let entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
-  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
-  let nonEntryList = [[0.6, 0.8, ''], [0.9, 1.2, '']];
+  const entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
+  const tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  const nonEntryList = [[0.6, 0.8, ''], [0.9, 1.2, '']];
 
-  let actualNonEntryList = getNonEntriesFromIntervalTier(tier);
+  const actualNonEntryList = getNonEntriesFromIntervalTier(tier);
   expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
 })
 
 test('getNonEntriesFromIntervalTier returns whole interval for empty tier', () => {
-  let entryList = [];
-  let tier = new IntervalTier('TierA', entryList, 0, 2.0);
-  let nonEntryList = [[0, 2.0, '']];
+  const entryList = [];
+  const tier = new IntervalTier('TierA', entryList, 0, 2.0);
+  const nonEntryList = [[0, 2.0, '']];
 
-  let actualNonEntryList = getNonEntriesFromIntervalTier(tier);
+  const actualNonEntryList = getNonEntriesFromIntervalTier(tier);
   expect(actualNonEntryList).toBeDeepCloseTo(nonEntryList);
 })
 
 test('getValuesInIntervals works', () => {
-  let entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
-  let pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
-  let expectedResult = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.83, 'f'], [1.26, 'j'], [1.99, 'k']];
-  let tier = new IntervalTier('Speaker 1', entryList);
+  const entryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.2, 2.0, 'dog']];
+  const pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
+  const expectedResult = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.83, 'f'], [1.26, 'j'], [1.99, 'k']];
+  const tier = new IntervalTier('Speaker 1', entryList);
 
-  let containedValues = getValuesInIntervals(tier, pointList);
+  const containedValues = getValuesInIntervals(tier, pointList);
   expect(containedValues).toBeDeepCloseTo(expectedResult);
 })
 
 test('getValuesAtPoints works', () => {
-  let pointEntryList = [[0.1, '1'], [0.6, '2'], [0.8, '3'], [0.83, '4'], [1.09, '5'], [1.11, '6'], [1.33, '7']];
-  let pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
-  let expectedResult = [[0.1, 'a'], [0.6, 'c'], [0.83, 'f'], [1.09, 'h']];
-  let tier = new PointTier('Pitch vals 1', pointEntryList);
+  const pointEntryList = [[0.1, '1'], [0.6, '2'], [0.8, '3'], [0.83, '4'], [1.09, '5'], [1.11, '6'], [1.33, '7']];
+  const pointList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
+  const expectedResult = [[0.1, 'a'], [0.6, 'c'], [0.83, 'f'], [1.09, 'h']];
+  const tier = new PointTier('Pitch vals 1', pointEntryList);
 
-  let containedValues = getValuesAtPoints(tier, pointList, false);
+  const containedValues = getValuesAtPoints(tier, pointList, false);
   expect(containedValues).toBeDeepCloseTo(expectedResult);
 })
 
 test('getEntriesInInterval works for IntervalTiers', () => {
-  let intervalEntryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.0, 1.1, 'elephant'], [1.2, 2.0, 'dog'], [2.5, 3.0, 'horse'], [400.0, 405.0, 'fish']];
-  let start = 0.85;
-  let stop = 1.5;
-  let expectedResult = [[0.8, 0.9, 'bird'], [1.0, 1.1, 'elephant'], [1.2, 2.0, 'dog']];
+  const intervalEntryList = [[0.0, 0.6, 'cat'], [0.8, 0.9, 'bird'], [1.0, 1.1, 'elephant'], [1.2, 2.0, 'dog'], [2.5, 3.0, 'horse'], [400.0, 405.0, 'fish']];
+  const start = 0.85;
+  const stop = 1.5;
+  const expectedResult = [[0.8, 0.9, 'bird'], [1.0, 1.1, 'elephant'], [1.2, 2.0, 'dog']];
 
-  let tier = new IntervalTier('Speaker 1', intervalEntryList);
-  let containedEntries = getEntriesInInterval(tier, start, stop);
+  const tier = new IntervalTier('Speaker 1', intervalEntryList);
+  const containedEntries = getEntriesInInterval(tier, start, stop);
   expect(containedEntries).toBeDeepCloseTo(expectedResult);
 })
 
 test('getEntriesInInterval works for PointTiers', () => {
-  let pointEntryList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
-  let start = 0.43;
-  let stop = 0.79;
-  let expectedResult = [[0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e']];
+  const pointEntryList = [[0.1, 'a'], [0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e'], [0.83, 'f'], [0.95, 'g'], [1.09, 'h'], [1.15, 'i'], [1.26, 'j'], [1.99, 'k']];
+  const start = 0.43;
+  const stop = 0.79;
+  const expectedResult = [[0.43, 'b'], [0.6, 'c'], [0.71, 'd'], [0.79, 'e']];
 
-  let tier = new PointTier('Pitch vals 1', pointEntryList);
-  let containedEntries = getEntriesInInterval(tier, start, stop);
+  const tier = new PointTier('Pitch vals 1', pointEntryList);
+  const containedEntries = getEntriesInInterval(tier, start, stop);
   expect(containedEntries).toBeDeepCloseTo(expectedResult);
 })

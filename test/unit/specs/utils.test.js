@@ -52,8 +52,8 @@ test('sortCompareEntriesByTime subtracts the first two elements in the input lis
 });
 
 test('sortCompareEntriesByTime will sort entries by time', () => {
-  let unsortedList = [[90, 'a'], [15, 'b'], [0.1, 'c']];
-  let sortedList = [[0.1, 'c'], [15, 'b'], [90, 'a']];
+  const unsortedList = [[90, 'a'], [15, 'b'], [0.1, 'c']];
+  const sortedList = [[0.1, 'c'], [15, 'b'], [90, 'a']];
 
   expect(unsortedList).not.toEqual(sortedList);
   unsortedList.sort(sortCompareEntriesByTime);
@@ -61,38 +61,38 @@ test('sortCompareEntriesByTime will sort entries by time', () => {
 });
 
 function getSampleIntervals () {
-  let nodeA = [0, 1, 'a'];
-  let nodeB = [2, 3, 'b'];
-  let nodeC = [5, 10, 'c'];
+  const nodeA = [0, 1, 'a'];
+  const nodeB = [2, 3, 'b'];
+  const nodeC = [5, 10, 'c'];
 
-  let nodeD = [12, 18, 'd'];
+  const nodeD = [12, 18, 'd'];
 
-  let nodeE = [25, 32, 'e'];
-  let nodeF = [41, 53, 'f'];
-  let nodeG = [54, 58, 'g'];
+  const nodeE = [25, 32, 'e'];
+  const nodeF = [41, 53, 'f'];
+  const nodeG = [54, 58, 'g'];
 
   return [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
 }
 
 function getSamplePoints () {
-  let nodeA = [0, 'a'];
-  let nodeB = [2, 'b'];
-  let nodeC = [4, 'c'];
+  const nodeA = [0, 'a'];
+  const nodeB = [2, 'b'];
+  const nodeC = [4, 'c'];
 
-  let nodeD = [12, 'd'];
+  const nodeD = [12, 'd'];
 
-  let nodeE = [25, 'e'];
-  let nodeF = [41, 'f'];
-  let nodeG = [54, 'g'];
+  const nodeE = [25, 'e'];
+  const nodeF = [41, 'f'];
+  const nodeG = [54, 'g'];
 
   return [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
 }
 
 test('entryListToTree will build a tree from an entry list with an even number of nodes; entryListToTree works with intervals', () => {
-  let [nodeA, nodeB, nodeC, nodeD] = getSampleIntervals();
+  const [nodeA, nodeB, nodeC, nodeD] = getSampleIntervals();
 
-  let entryList1 = [nodeA, nodeB, nodeC, nodeD];
-  let tree1 = entryListToTree(entryList1);
+  const entryList1 = [nodeA, nodeB, nodeC, nodeD];
+  const tree1 = entryListToTree(entryList1);
 
   expect(tree1.entry).toEqual(nodeC);
 
@@ -107,10 +107,10 @@ test('entryListToTree will build a tree from an entry list with an even number o
 });
 
 test('entryListToTree will build a tree from an entry list with an odd number of nodes; entryListToTree works with points', () => {
-  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
+  const [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
 
-  let entryList1 = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
-  let tree1 = entryListToTree(entryList1);
+  const entryList1 = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  const tree1 = entryListToTree(entryList1);
 
   expect(tree1.entry).toEqual(nodeD);
 
@@ -125,27 +125,27 @@ test('entryListToTree will build a tree from an entry list with an odd number of
 });
 
 test('no tree is made if the list is empty', () => {
-  let tree1 = entryListToTree([]);
+  const tree1 = entryListToTree([]);
   expect(tree1).toEqual(null);
 });
 
 test('entryListToTree orders the input entries', () => {
-  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSampleIntervals();
+  const [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSampleIntervals();
 
-  let entryList1 = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
-  let entryList2 = [nodeG, nodeB, nodeA, nodeD, nodeF, nodeC, nodeE];
+  const entryList1 = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  const entryList2 = [nodeG, nodeB, nodeA, nodeD, nodeF, nodeC, nodeE];
 
-  let tree1 = entryListToTree(entryList1);
-  let tree2 = entryListToTree(entryList2);
+  const tree1 = entryListToTree(entryList1);
+  const tree2 = entryListToTree(entryList2);
 
   expect(tree1).toEqual(tree2);
 });
 
 test('findIntervalAtTime works', () => {
-  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSampleIntervals();
+  const [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSampleIntervals();
 
-  let entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
-  let tree = entryListToTree(entryList);
+  const entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  const tree = entryListToTree(entryList);
 
   expect(findIntervalAtTime(5, tree)).toEqual(nodeC);
   expect(findIntervalAtTime(14, tree)).toEqual(nodeD);
@@ -154,10 +154,10 @@ test('findIntervalAtTime works', () => {
 });
 
 test('findPointsAtTime works', () => {
-  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
+  const [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
 
-  let entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
-  let tree = entryListToTree(entryList);
+  const entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  const tree = entryListToTree(entryList);
 
   expect(findPointAtTime(4, tree, false)).toEqual(nodeC);
   expect(findPointAtTime(12, tree, false)).toEqual(nodeD);
@@ -166,10 +166,10 @@ test('findPointsAtTime works', () => {
 });
 
 test('findPointsAtTime returns the closest value if findClosest is true', () => {
-  let [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
+  const [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG] = getSamplePoints();
 
-  let entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
-  let tree = entryListToTree(entryList);
+  const entryList = [nodeA, nodeB, nodeC, nodeD, nodeE, nodeF, nodeG];
+  const tree = entryListToTree(entryList);
 
   expect(findPointAtTime(12, tree, true)).toEqual(nodeD); // exact matches still work
   expect(findPointAtTime(3, tree, true)).toEqual(nodeB); // equidistant between two points

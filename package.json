@@ -3,7 +3,7 @@
   "version": "2.1.7",
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "scripts": {
-    "linter": "eslint --ignore-path .gitignore ./lib",
+    "linter": "eslint --ignore-path .gitignore ./lib ./test",
     "test": "jest --config=./test/unit/jest.conf.js",
     "coveralls": "cat ./test/unit/coverage/lcov.info | coveralls",
     "docs": "jsdoc -d ./docs --readme ./README.md ./lib"

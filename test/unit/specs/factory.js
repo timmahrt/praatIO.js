@@ -3,7 +3,7 @@ import {
 } from '../../../lib';
 
 function getIntervalTier1 () {
-  let intervals1 = [
+  const intervals1 = [
     [0.73, 1.02, 'Ichiro'],
     [1.02, 1.231, 'hit'],
     [1.33, 1.54, 'a'],
@@ -13,7 +13,7 @@ function getIntervalTier1 () {
 }
 
 function getIntervalTier2 () {
-  let intervals2 = [
+  const intervals2 = [
     [3.56, 3.98, 'and'],
     [3.98, 4.21, 'Fred'],
     [4.21, 4.44, 'caught'],
@@ -23,7 +23,7 @@ function getIntervalTier2 () {
 }
 
 function getPointTier1 () {
-  let points1 = [
+  const points1 = [
     [0.9, '120'],
     [1.11, '100'],
     [1.41, '110'],
@@ -33,7 +33,7 @@ function getPointTier1 () {
 }
 
 function getPointTier2 () {
-  let points2 = [
+  const points2 = [
     [3.78, '140'],
     [4.11, '131'],
     [4.32, '135'],
@@ -43,7 +43,7 @@ function getPointTier2 () {
 }
 
 function getPointTier3 () {
-  let points3 = [
+  const points3 = [
     [2.29, 'Door slam'],
     [2.99, 'Cough']
   ]
@@ -51,14 +51,14 @@ function getPointTier3 () {
 }
 
 function getPrefabTextgrid (tierList = null) {
-  let tg = new Textgrid();
+  const tg = new Textgrid();
 
   if (!tierList) {
-    let intervalTier1 = getIntervalTier1();
-    let intervalTier2 = getIntervalTier2();
-    let pitchTier1 = getPointTier1();
-    let pitchTier2 = getPointTier2();
-    let noiseTier = getPointTier3();
+    const intervalTier1 = getIntervalTier1();
+    const intervalTier2 = getIntervalTier2();
+    const pitchTier1 = getPointTier1();
+    const pitchTier2 = getPointTier2();
+    const noiseTier = getPointTier3();
 
     tierList = [intervalTier1, intervalTier2, pitchTier1, pitchTier2, noiseTier];
   }
