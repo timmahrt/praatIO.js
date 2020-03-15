@@ -147,7 +147,7 @@ class PointTier extends TextgridTier {
     entryList = entryList.map(([timeV, label]) => [parseFloat(timeV), label]);
 
     // Determine the min and max timestamps
-    let timeList = entryList.map(entry => entry[0]);
+    const timeList = entryList.map(entry => entry[0]);
     if (minT !== null) timeList.push(parseFloat(minT));
     if (timeList.length > 0) minT = Math.min(...timeList);
 
@@ -167,7 +167,7 @@ class PointTier extends TextgridTier {
    * @param {string} [collisionCode=null] - the action to take if there is a collision
    */
   insertEntry (entry, warnFlag = true, collisionCode = null) {
-    let startTime = entry[0];
+    const startTime = entry[0];
 
     let match = null;
     for (let i = 0; i &lt; this.entryList.length; i++) {
@@ -185,7 +185,7 @@ class PointTier extends TextgridTier {
       this.entryList.push(entry);
     }
     else if (collisionCode &amp;&amp; collisionCode.toLowerCase() === 'merge') {
-      let newEntry = [match[0], [match[1], entry[1]].join('-')];
+      const newEntry = [match[0], [match[1], entry[1]].join('-')];
       this.deleteEntry(match);
       this.entryList.push(newEntry);
     }
@@ -196,7 +196,7 @@ class PointTier extends TextgridTier {
     this.sort();
 
     if (match &amp;&amp; warnFlag === true) {
-      let msg = `Collision warning for [${entry}] with items [${match}] of tier '${this.name}'`;
+      const msg = `Collision warning for [${entry}] with items [${match}] of tier '${this.name}'`;
       console.log(msg);
     }
   }
@@ -218,11 +218,11 @@ class IntervalTier extends TextgridTier {
     entryList = entryList.map(([startTime, endTime, label]) => [parseFloat(startTime), parseFloat(endTime), label]);
 
     // Determine the min and max timestamps
-    let startTimeList = entryList.map(entry => entry[0]);
+    const startTimeList = entryList.map(entry => entry[0]);
     if (minT !== null) startTimeList.push(parseFloat(minT));
     if (startTimeList.length > 0) minT = Math.min(...startTimeList);
 
-    let endTimeList = entryList.map(entry => entry[1]);
+    const endTimeList = entryList.map(entry => entry[1]);
     if (maxT !== null) endTimeList.push(parseFloat(maxT));
     if (endTimeList.length > 0) maxT = Math.max(...endTimeList);
 
@@ -239,10 +239,10 @@ class IntervalTier extends TextgridTier {
    * @param {string} [collisionCode=null] - the action to take if there is a collision
    */
   insertEntry (entry, warnFlag = false, collisionCode = null) {
-    let startTime = entry[0];
-    let endTime = entry[1];
+    const startTime = entry[0];
+    const endTime = entry[1];
 
-    let matchList = getEntriesInInterval(this, startTime, endTime);
+    const matchList = getEntriesInInterval(this, startTime, endTime);
 
     if (matchList.length === 0) {
       this.entryList.push(entry);
@@ -260,11 +260,11 @@ class IntervalTier extends TextgridTier {
       matchList.push(entry);
       matchList.sort(sortCompareEntriesByTime);
 
-      let startTimes = matchList.map(entry => entry[0]);
-      let endTimes = matchList.map(entry => entry[1]);
-      let labels = matchList.map(entry => entry[2]);
+      const startTimes = matchList.map(entry => entry[0]);
+      const endTimes = matchList.map(entry => entry[1]);
+      const labels = matchList.map(entry => entry[2]);
 
-      let newEntry = [
+      const newEntry = [
         Math.min(...startTimes),
         Math.max(...endTimes),
         labels.join('-')
@@ -279,7 +279,7 @@ class IntervalTier extends TextgridTier {
     this.sort();
 
     if (matchList &amp;&amp; warnFlag === true) {
-      let msg = `Collision warning for [${entry}] with items [${matchList}] of tier '${this.name}'`;
+      const msg = `Collision warning for [${entry}] with items [${matchList}] of tier '${this.name}'`;
       console.log(msg);
     }
   }
@@ -333,21 +333,21 @@ class Textgrid {
    * @ignore
    */
   _homogonizeMinMaxTimestamps () {
-    let minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
-    let maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
+    const minTimes = this.tierNameList.map(tierName => this.tierDict[tierName].minTimestamp);
+    const maxTimes = this.tierNameList.map(tierName => this.tierDict[tierName].maxTimestamp);
 
-    let minTimestamp = Math.min(...minTimes);
-    let maxTimestamp = Math.max(...maxTimes);
+    const minTimestamp = Math.min(...minTimes);
+    const maxTimestamp = Math.max(...maxTimes);
 
     this.minTimestamp = minTimestamp;
     for (let i = 0; i &lt; this.tierNameList.length; i++) {
-      let tierName = this.tierNameList[i];
+      const tierName = this.tierNameList[i];
       this.tierDict[tierName].minTimestamp = minTimestamp;
     }
 
     this.maxTimestamp = maxTimestamp;
     for (let i = 0; i &lt; this.tierNameList.length; i++) {
-      let tierName = this.tierNameList[i];
+      const tierName = this.tierNameList[i];
       this.tierDict[tierName].maxTimestamp = maxTimestamp;
     }
   }
@@ -362,9 +362,9 @@ class Textgrid {
       throw new TierExistsException(newName);
     }
 
-    let oldTier = this.tierDict[oldName];
-    let tierIndex = this.tierNameList.indexOf(oldName);
-    let newTier = copyTier(oldTier, { name: newName });
+    const oldTier = this.tierDict[oldName];
+    const tierIndex = this.tierNameList.indexOf(oldName);
+    const newTier = copyTier(oldTier, { name: newName });
 
     this.removeTier(oldName);
     this.addTier(newTier, tierIndex);
@@ -385,7 +385,7 @@ class Textgrid {
    * @param {TextgridTier} newTier
    */
   replaceTier (name, newTier) {
-    let tierIndex = this.tierNameList.indexOf(name);
+    const tierIndex = this.tierNameList.indexOf(name);
     this.removeTier(name);
     this.addTier(newTier, tierIndex);
   }
@@ -407,7 +407,7 @@ function compareTextgrids (tg1, tg2) {
   }
 
   for (let i = 0; i &lt; tg1.tierNameList.length; i++) {
-    let tierName = tg1.tierNameList[i];
+    const tierName = tg1.tierNameList[i];
     isEqual &amp;= compareTiers(tg1.tierDict[tierName], tg2.tierDict[tierName]);
   }
 
@@ -473,9 +473,9 @@ function compareIntervals (intervalA, intervalB) {
  * @return {Textgrid}
  */
 function copyTextgrid (tg) {
-  let textgrid = new Textgrid();
+  const textgrid = new Textgrid();
   for (let i = 0; i &lt; tg.tierNameList.length; i++) {
-    let tierName = tg.tierNameList[i];
+    const tierName = tg.tierNameList[i];
     textgrid.addTier(copyTier(tg.tierDict[tierName]));
   }
 
@@ -513,11 +513,11 @@ function copyTier (tier, {
  * @return {Array}
  */
 function getValuesAtPoints (pointTier, dataTupleList) {
-  let searchTree = entryListToTree(pointTier.entryList);
+  const searchTree = entryListToTree(pointTier.entryList);
 
-  let returnList = [];
+  const returnList = [];
   for (let i = 0; i &lt; dataTupleList.length; i++) {
-    let currentEntry = dataTupleList[i];
+    const currentEntry = dataTupleList[i];
     if (findPointAtTime(currentEntry[0], searchTree, false) !== null) {
       returnList.push(currentEntry);
     }
@@ -533,11 +533,11 @@ function getValuesAtPoints (pointTier, dataTupleList) {
  * @return {Array}
  */
 function getValuesInIntervals (intervalTier, dataTupleList) {
-  let searchTree = entryListToTree(intervalTier.entryList);
+  const searchTree = entryListToTree(intervalTier.entryList);
 
-  let returnList = [];
+  const returnList = [];
   for (let i = 0; i &lt; dataTupleList.length; i++) {
-    let currentEntry = dataTupleList[i];
+    const currentEntry = dataTupleList[i];
     if (findIntervalAtTime(currentEntry[0], searchTree) !== null) {
       returnList.push(currentEntry);
     }
@@ -565,9 +565,9 @@ function getEntriesInInterval (tier, startTime, endTime) {
 }
 
 function getIntervalTierEntriesInInterval (intervalTier, startTime, endTime) {
-  let entryList = [];
+  const entryList = [];
   for (let i = 0; i &lt; intervalTier.entryList.length; i++) {
-    let entry = intervalTier.entryList[i];
+    const entry = intervalTier.entryList[i];
     if (doIntervalsOverlap([startTime, endTime], entry)) {
       entryList.push(entry);
     }
@@ -576,9 +576,9 @@ function getIntervalTierEntriesInInterval (intervalTier, startTime, endTime) {
 }
 
 function getPointTierEntriesInInterval (pointTier, startTime, endTime) {
-  let entryList = [];
+  const entryList = [];
   for (let i = 0; i &lt; pointTier.entryList.length; i++) {
-    let entry = pointTier.entryList[i];
+    const entry = pointTier.entryList[i];
     if (entry[0] >= startTime &amp;&amp; entry[0] &lt;= endTime) {
       entryList.push(entry);
     }
@@ -592,7 +592,7 @@ function getPointTierEntriesInInterval (pointTier, startTime, endTime) {
  * @return {Array} invertedEntryList - where each entry looks like [start time, end time, '']
  */
 function getNonEntriesFromIntervalTier (intervalTier) {
-  let invertedEntryList = [];
+  const invertedEntryList = [];
 
   // Special case--the entry list is empty
   if (intervalTier.entryList.length === 0) return [[intervalTier.minTimestamp, intervalTier.maxTimestamp, '']];
@@ -602,14 +602,14 @@ function getNonEntriesFromIntervalTier (intervalTier) {
   }
 
   for (let i = 0; i &lt; intervalTier.entryList.length - 1; i++) {
-    let currEnd = intervalTier.entryList[i][1];
-    let nextStart = intervalTier.entryList[i + 1][0];
+    const currEnd = intervalTier.entryList[i][1];
+    const nextStart = intervalTier.entryList[i + 1][0];
     if (currEnd !== nextStart) {
       invertedEntryList.push([currEnd, nextStart, '']);
     }
   }
 
-  let lastI = intervalTier.entryList.length - 1;
+  const lastI = intervalTier.entryList.length - 1;
   if (intervalTier.entryList[lastI][1] &lt; intervalTier.maxTimestamp) {
     invertedEntryList.push([intervalTier.entryList[lastI][1], intervalTier.maxTimestamp, '']);
   }
@@ -637,7 +637,7 @@ function findLabelInTier (tier, searchLabel, mode = null) {
   }
 
   // Run the search
-  let returnList = [];
+  const returnList = [];
   for (let i = 0; i &lt; tier.entryList.length; i++) {
     if (cmprFunc(tier.entryList[i][tier.labelIndex], searchLabel)) returnList.push(i);
   }
@@ -676,7 +676,7 @@ export {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.2</a> on Thu Jun 06 2019 08:10:17 GMT+0900 (Japan Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Mar 15 2020 16:52:41 GMT+0900 (Japan Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
