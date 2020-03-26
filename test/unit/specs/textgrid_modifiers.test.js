@@ -465,9 +465,11 @@ test('Deleting the end of a textgrid with eraseRegionFromTextgrid, there is no d
 
 test('The wrong collision code with eraseRegionFromTier throws an error', () => {
   const tier = getIntervalTier1();
-  expect(() => {
+  const trial = () => {
     eraseRegionFromTier(tier, 0, 1, true, null); // eslint-disable-line no-new
-  }).toThrowError("Expected value 'null' to be one value in [strict,truncated].");
+  }
+  expect(trial).toThrowError("Expected value 'null' to be one value in [strict,truncated].");
+  expect(trial).toThrowError(IncorrectArgumentException);
 })
 
 test('Can insertSpaceIntoTextgrid into the middle of a textgrid', () => {
