@@ -13,7 +13,9 @@ import {
   // functions that compare
   compareTextgrids,
   // utils
-  sortCompareEntriesByTime
+  sortCompareEntriesByTime,
+  // exceptions
+  IncorrectArgumentException
 } from '../../../lib';
 
 import {
