@@ -59,7 +59,17 @@ test('converting from a textgrid file to an instance and back yields the same da
   expect(outputTextgridText).toBe(textgridText);
 });
 
+test('converting from a long textgrid file to an instance and back yields the same data', () => {
+  const textgridBuffer = fs.readFileSync('./test/assets/mary_long.TextGrid');
+  const textgridText = decodeBuffer(textgridBuffer);
+  const tg = parseTextgrid(textgridText);
+  const outputTextgridText = serializeTextgrid(tg, 0, null, null, false);
+
+  expect(outputTextgridText).toBe(textgridText);
+})
+
 test('buffers and text can be parsed by parseTextgrid', () => {
+  // reading as text won't work with praat's default output of utf16be, but such files can still be read as buffers
   const textgridBuffer = fs.readFileSync('./test/assets/mary.TextGrid');
   const textgridText = fs.readFileSync('./test/assets/mary.TextGrid', 'utf8');
 
