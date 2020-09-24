@@ -2,8 +2,8 @@ import fs from 'fs';
 
 import {
   parseTextgrid, serializeTextgrid, serializeTextgridToCsv,
-  decodeBuffer, IntervalTier, Textgrid, prepTgForSaving,
-  INTERVAL_TIER, POINT_TIER
+  decodeBuffer, IntervalTier, PointTier, Textgrid,
+  prepTgForSaving, INTERVAL_TIER, POINT_TIER
 } from '../../../lib';
 
 function entriesAreEqual (entryA, entryB, tierType) {
@@ -20,6 +20,13 @@ function entriesAreEqual (entryA, entryB, tierType) {
   }
 }
 
+function entryListsAreEqual (entryListA, entryListB, tierType) {
+  expect(entryListA.length).toEqual(entryListB.length);
+  for (let i = 0; i < entryListA.length; i++) {
+    entriesAreEqual(entryListA[i], entryListB[i], tierType);
+  }
+}
+
 function tiersAreEqual (tierA, tierB) {
   expect(tierA.minTimestamp).toBeCloseTo(tierB.minTimestamp);
   expect(tierA.maxTimestamp).toBeCloseTo(tierB.maxTimestamp);
@@ -30,9 +37,7 @@ function tiersAreEqual (tierA, tierB) {
   expect(tierA.entryList.length).toEqual(tierB.entryList.length);
   expect(tierA.entryList.length).not.toBe(0);
 
-  for (let i = 0; i < tierA.entryList.length; i++) {
-    entriesAreEqual(tierA.entryList[i], tierB.entryList[i], tierA.tierType);
-  }
+  entryListsAreEqual(tierA.entryList, tierB.entryList, tierA.tierType)
 }
 
 function textgridsAreEqual (tgA, tgB) {
@@ -49,6 +54,59 @@ function textgridsAreEqual (tgA, tgB) {
     tiersAreEqual(tgA.tierDict[tierName], tgB.tierDict[tierName]);
   }
 }
+
+test('opening a textgrid from a file with readRaw = true works', () => {
+  const textgridBuffer = fs.readFileSync('./test/assets/mary.TextGrid');
+  const tg = parseTextgrid(textgridBuffer, true);
+  const isEmpty = (entry) => entry[entry.length - 1] === '';
+
+  for (let i = 0; i < tg.tierNameList.length; i++) {
+    const tierName = tg.tierNameList[i];
+    const tier = tg.tierDict[tierName];
+
+    if (tier.tierType !== INTERVAL_TIER) continue;
+
+    expect(tier.entryList.some(isEmpty)).toBe(true);
+  }
+});
+
+test('empty entries in tiers are included when readRaw = true', () => {
+  const intervalEntryList = [
+    [0, 0.5, ''],
+    [0.5, 0.9, 'Hello'],
+    [0.9, 1.3, ''],
+    [1.3, 1.8, 'World'],
+    [1.8, 2.2, '']
+  ];
+  const pointEntryList = [
+    [0.3, ''],
+    [0.7, '3.9'],
+    [1.1, '100.1'],
+    [1.5, ''],
+    [1.9, '33.2']
+  ]
+  const intervalTierName = 'intervals';
+  const pointTierName = 'points'
+  const intervalTier = new IntervalTier(intervalTierName, intervalEntryList);
+  const pointTier = new PointTier(pointTierName, pointEntryList);
+  const tg = new Textgrid();
+  tg.addTier(intervalTier);
+  tg.addTier(pointTier);
+
+  const outputTextgridText = serializeTextgrid(tg, 0, null, null, false);
+
+  const tgWithoutEmptyEntries = parseTextgrid(outputTextgridText, false);
+  const tierWithoutEmptyIntervals = tgWithoutEmptyEntries.tierDict[intervalTierName];
+  const tierWithoutEmptyPoints = tgWithoutEmptyEntries.tierDict[pointTierName];
+  entryListsAreEqual(tierWithoutEmptyIntervals.entryList, [[0.5, 0.9, 'Hello'], [1.3, 1.8, 'World']], INTERVAL_TIER);
+  entryListsAreEqual(tierWithoutEmptyPoints.entryList, [[0.7, '3.9'], [1.1, '100.1'], [1.9, '33.2']], POINT_TIER)
+
+  const tgWithEmptyEntries = parseTextgrid(outputTextgridText, true);
+  const tierWithEmptyIntervals = tgWithEmptyEntries.tierDict[intervalTierName];
+  const tierWithEmptyPoints = tgWithEmptyEntries.tierDict[pointTierName];
+  entryListsAreEqual(tierWithEmptyIntervals.entryList, intervalEntryList, INTERVAL_TIER);
+  entryListsAreEqual(tierWithEmptyPoints.entryList, pointEntryList, POINT_TIER);
+});
 
 test('converting from a textgrid file to an instance and back yields the same data', () => {
   const textgridBuffer = fs.readFileSync('./test/assets/mary.TextGrid');
