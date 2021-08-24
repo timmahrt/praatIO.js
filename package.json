@@ -2,9 +2,10 @@
   "name": "praatio",
   "version": "2.3.2",
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
+  "type": "module",
   "scripts": {
     "linter": "eslint --ignore-path .gitignore ./lib ./test",
-    "test": "jest --config=./test/unit/jest.conf.js",
+    "test": "jest --config=./test/unit/jest.conf.cjs",
     "coveralls": "cat ./test/unit/coverage/lcov.info | coveralls",
     "docs": "jsdoc -d ./docs --readme ./README.md ./lib"
   },
