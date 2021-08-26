@@ -1,6 +1,6 @@
 {
   "name": "praatio",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "A javascript library for working with praat, textgrids, time aligned audio transcripts, and audio files.",
   "type": "module",
   "scripts": {
